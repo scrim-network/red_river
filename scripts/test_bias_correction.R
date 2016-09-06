@@ -93,11 +93,6 @@ mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks, 
   
 }
 
-
-mod_adj_nowin <- edqmap_prcp(df$obs['1976/2005'], df$mod['1976/2005'], df$mod['2070/2099'], df$mod['2070/2099'])
-
-
-
 # Based on eqm function in downscaleR
 # https://github.com/SantanderMetGroup/downscaleR/blob/devel/R/biasCorrection.R
 qmap_vals <- function(from_vals_train, to_vals_train, from_vals) {
@@ -125,12 +120,6 @@ qmap_vals <- function(from_vals_train, to_vals_train, from_vals) {
 
 }
 
-qmap_tair <- function(obs, pred_train, pred_fut, pred_fut_subset) {
-  
-  pred_adj <- qmap_vals(pred_train, obs, pred_fut_subset)  
-  return(pred_adj)
-  
-}
 
 # Delta type: 'add' or 'ratio'
 edqmap <- function(obs, pred_train, pred_fut, pred_fut_subset, delta_type='add') {
@@ -213,28 +202,6 @@ edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   return(pred_fut_adj[index(pred_fut_subset)])
 }
 
-edqmap_prcp_pierce <- function(obs, pred_train, pred_fut, pred_fut_subset) {
-  
-  
-  pred_fut_adj <- edqmap(obs, pred_train, pred_fut, pred_fut, delta_type='ratio')
-  
-  wetday_t <- wetday_threshold(obs, pred_train)
-  
-  ndry <- sum(pred_fut < wetday_t)
-  
-  if (ndry > 0) {
-    
-    times_adj <- index(pred_fut_adj)
-    pred_fut_adj <- as.numeric(pred_fut_adj)
-    
-    pred_fut_adj[order(pred_fut_adj)[1:ndry]] <- 0
-    
-    pred_fut_adj <- xts(pred_fut_adj, times_adj)
-  }
-
-  return(pred_fut_adj[index(pred_fut_subset)])
-}
-
 # threshold below which mod prcp should be set to 0
 wetday_threshold <- function(obs, mod) {
   
@@ -253,8 +220,7 @@ wetday_threshold <- function(obs, mod) {
     }
 
   }
-  
-  # set limits on thres?
+ 
   return(thres)
   
 }
