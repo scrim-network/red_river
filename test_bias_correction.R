@@ -60,18 +60,28 @@ mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, winsize=31)
       mask_day_fut <- masks_mthday_fut[a_day,]
       
       vals_mod_fut_adj[mask_day_fut] <- bias_func(vals_obs[mask_win_train],
-          vals_mod_train[mask_win_train],
-          vals_mod_fut[mask_win_fut],
-          vals_mod_fut[mask_day_fut])
+                                                  vals_mod_train[mask_win_train],
+                                                  vals_mod_fut[mask_win_fut],
+                                                  vals_mod_fut[mask_day_fut])
     }
     
-    mod_fut_adj <- rbind(mod_fut_adj,vals_mod_fut_adj)
+    vals_mod_fut_adj_nowin <- bias_func(vals_obs, vals_mod_train, vals_mod_fut, vals_mod_fut) 
+    
+    # Bias correct vals_mod_fut_adj with vals_mod_fut_adj_nowin
+    vals_mod_fut_adj <- bias_func(vals_mod_fut_adj_nowin, vals_mod_fut_adj, vals_mod_fut_adj, vals_mod_fut_adj)
+    
+    mod_fut_adj <- rbind(mod_fut_adj, vals_mod_fut_adj)
     
   }
   
   return(mod_fut_adj)
   
 }
+
+
+mod_adj_nowin <- edqmap_prcp(df$obs['1976/2005'], df$mod['1976/2005'], df$mod['2070/2099'], df$mod['2070/2099'])
+
+
 
 # Based on eqm function in downscaleR
 # https://github.com/SantanderMetGroup/downscaleR/blob/devel/R/biasCorrection.R
