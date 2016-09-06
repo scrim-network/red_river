@@ -38,23 +38,38 @@ window_masks <- function(dates, winsize=31) {
 
 }
 
-mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, winsize=31) {
+build_window_masks <- function(obs, idx_periods, winsize=31) {
   
-  masks_win_train <- window_masks(index(obs[idx_train]), winsize = winsize)
+  win_masks <- list()
+    
+  for (a_idx in idx_periods) {
   
+    win_masks[[a_idx]] <- window_masks(index(obs[a_idx]), winsize = winsize)
+  
+  }
+  
+  return(win_masks)
+  
+}
+
+mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks, win_masks_1day) {
+    
   mod_fut_adj <- NULL
+  
+  masks_win_train <- win_masks[[idx_train]]
   
   for (a_idx_fut in idx_fut) {
     
-    masks_win_fut <- window_masks(index(mod[a_idx_fut]), winsize = winsize)
-    masks_mthday_fut <- window_masks(index(mod[a_idx_fut]),1)
+    masks_win_fut <- win_masks[[a_idx_fut]]
+    masks_mthday_fut <- win_masks_1day[[a_idx_fut]]
     
     vals_obs <- obs[idx_train]
     vals_mod_train <- mod[idx_train]
     vals_mod_fut <- mod[a_idx_fut]
     vals_mod_fut_adj <- xts(vals_mod_fut)
     
-    for (a_day in row.names(masks_mthday_fut)) {      
+    for (a_day in row.names(masks_mthday_fut)) {   
+      
       mask_win_train <- masks_win_train[a_day,]
       mask_win_fut <- masks_win_fut[a_day,]
       mask_day_fut <- masks_mthday_fut[a_day,]
@@ -369,6 +384,6 @@ pred_fut_subset <- mod[a_idx_fut][mask_day_fut]
 
 pred_fut_subset <- pred_fut
 
-
-
+win_masks <- build_window_masks(df$obs, unique(c(idx_train,idx_fut)), 31)
+win_masks1 <- build_window_masks(df$obs, unique(c(idx_train,idx_fut)), 1)
 
