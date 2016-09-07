@@ -2,126 +2,112 @@ Sys.setenv(TZ="UTC")
 library(RNetCDF)
 library(ncdf4)
 library(xts)
+library(doParallel)
+library(foreach)
+source('/storage/home/jwo118/projects/red_river/esd_r/debias.R')
 
-ds <- nc_open('/storage/home/jwo118/group_store/red_river/cmip5_cleaned/historical+rcp26_merged/tas.day.HadGEM2-ES.historical+rcp26.r3i1p1.19760101-20991231.nc')
-ds_aphro <- nc_open('/storage/home/jwo118/group_store/red_river/aphrodite/resample/APHRODITE.SAT.0p25deg.remapcon.1deg.nc')
+path_in_cmip5 <- '/storage/home/jwo118/group_store/red_river/cmip5_cleaned'
+path_out_cmip5 <- '/storage/home/jwo118/group_store/red_river/cmip5_debiased'
+paths_in = Sys.glob(file.path('/storage/home/jwo118/group_store/red_river/cmip5_cleaned',"*"))
+paths_out = sapply(basename(paths_in),function(x){file.path(path_out_cmip5,x)}, USE.NAMES=FALSE)
+for (apath in paths_out) dir.create(apath, showWarnings=FALSE, recursive=TRUE)
+fpaths_in <- Sys.glob(file.path(paths_in,'*'))
 
-a <- ncvar_get(ds)
-a_aphro <- ncvar_get(ds_aphro)
+ds_obs_tair <- nc_open('/storage/home/jwo118/group_store/red_river/aphrodite/resample/APHRODITE.SAT.0p25deg.remapcon.1deg.nc')
+ds_obs_prcp <- nc_open('/storage/home/jwo118/group_store/red_river/aphrodite/resample/APHRODITE.PCP.0p25deg.remapcon.1deg.nc')
 
-times <- ds$dim$time$vals
-times <- utcal.nc(ds$dim$time$units, times, type="c")
+a_obs_tair <-  ncvar_get(ds_obs_tair)
+a_obs_prcp <-  ncvar_get(ds_obs_prcp)
 
-times_aphro <- as.POSIXct(as.character(ds_aphro$dim$time$vals),format='%Y%m%d')
+times_obs <- as.POSIXct(as.character(ds_obs_tair$dim$time$vals),format='%Y%m%d')
 
-mod_ptype <- xts(a[1,1,],times)
-obs_ptype <- xts(a_aphro[1,1,],times_aphro)
-merge_ptype <- merge.xts(obs_ptype, mod_ptype)
+nc_close(ds_obs_tair)
+nc_close(ds_obs_prcp)
 
 idx_train <- '1976/2005'
 idx_fut <- c('1976/2005','2006/2039','2040/2069','2070/2099')
 idx_all <- unique(c(idx_train,idx_fut))
 winsize = 31
-
+ds_ptype <- nc_open(fpaths_in[1])
+a_ptype <- ncvar_get(ds_ptype)
+times_ptype <- utcal.nc(ds_ptype$dim$time$units, ds_ptype$dim$time$vals, type="c")
+nc_close(ds_ptype)
+mod_ptype <- xts(a_ptype[1,1,],times_ptype)
+obs_ptype <- xts(a_obs_tair[1,1,],times_obs)
+merge_ptype <- merge.xts(obs_ptype, mod_ptype)
 win_masks <- build_window_masks(merge_ptype,idx_all,winsize=winsize)
 win_masks1 <- build_window_masks(merge_ptype,idx_all,winsize=1)
 
-a_debias <- array(NA,dim(a))
+bias_funcs <- list('tas'=edqmap,'pr'=edqmap_prcp)
+a_obs <- list('tas'=a_obs_tair, 'pr'=a_obs_prcp)
 
-i <- 0
+fpath_log <- file.path('/storage/home/jwo118/group_store/red_river/logs/bias_correct.log')
+writeLines(c(""),fpath_log)
+cl <- makeCluster(3)
+registerDoParallel(cl)
 
-for (r in 1:dim(a_debias)[1]) {
+results <- foreach(fpath=fpaths_in) %dopar% {
   
-  for (c in 1:dim(a_debias)[2]) {
+  library(ncdf4)
+  library(xts)
+  source('/storage/home/jwo118/projects/red_river/esd_r/debias.R')
+  
+  cat(sprintf("Started processing %s \n", fpath), file=fpath_log, append=TRUE)
+  
+  ds <- nc_open(fpath)
+  elem <- names(ds$var)
+  bias_func <- bias_funcs[[elem]]
+  a <- ncvar_get(ds)
+  
+  a_debias <- array(NA,dim(a))
+  
+  for (r in 1:dim(a_debias)[1]) {
     
-    mod_rc <- xts(a[r,c,],times)
-    obs_rc <- xts(a_aphro[r,c,],times_aphro)
-    merge_rc <- merge.xts(obs_rc, mod_rc)
+    for (c in 1:dim(a_debias)[2]) {
+      
+      mod_rc <- xts(a[r,c,],times_ptype)
+      obs_rc <- xts(a_obs[[elem]][r,c,],times_obs)
+      merge_rc <- merge.xts(obs_rc, mod_rc)
+      a_debias[r,c,] <- mw_bias_correct(merge_rc[,1], merge_rc[,2], idx_train, idx_fut, bias_func, win_masks, win_masks1)
+      
+      cat(sprintf("Finished processing %s \n", fpath), file=fpath_log, append=TRUE)
+      
+    }
     
-    a_debias[r,c,] <- mw_bias_correct(obs_rc, mod_rc, idx_train, idx_fut, edqmap, win_masks, win_masks1)
-    i = i + 1
-    print(i)
   }
   
+  # Output debiased data
+  
+  # Create output dimensions
+  dim_lon <- ncdim_def('lon',units='',vals=ds$dim[['lon']]$vals)
+  dim_lat <- ncdim_def('lat',units='',vals=ds$dim[['lat']]$vals)
+  dim_time <- ncdim_def('time', units=ds$dim[['time']]$units, ds$dim[['time']]$vals,
+                        calendar=ds$dim[['time']]$calendar)
+  # Create output variable
+  var_out <- ncvar_def(elem, units=ds$var[[elem]]$units, dim=list(dim_lon,dim_lat,dim_time), missval=NA, prec='double')
+  
+  fpath_split <- strsplit(fpath,.Platform$file.sep)[[1]]
+  path_rcp <- fpath_split[length(fpath_split)-1]
+  fname_out <- fpath_split[length(fpath_split)]
+  fpath_out <- file.path(path_out_cmip5,path_rcp,fname_out)
+  
+  # Create output dataset
+  ds_out <- nc_create(fpath_out, var_out, force_v4=TRUE)
+  
+  # Write data
+  ncvar_put(ds_out, vals=a_debias)
+  
+  # Write global attributes
+  attrs_global <- ncatt_get(ds,0)
+  for (attname in names(attrs_global)) {
+    ncatt_put(ds_out,0,attname,attrs_global[[attname]])
+  }
+  
+  # Close
+  nc_close(ds_out)
+  nc_close(ds)
+  
+  return(1)
+      
 }
-
-
-a_debias <- apply(a,c(1,2),function(x){x})
-a_debias <- aperm(a_debias,c(2,3,1))
-
-# Create output dimensions
-dim_lon <- ncdim_def('lon',units='',vals=ds$dim[['lon']]$vals)
-dim_lat <- ncdim_def('lat',units='',vals=ds$dim[['lat']]$vals)
-dim_time <- ncdim_def('time', units=ds$dim[['time']]$units,
-                      ds$dim[['time']]$vals,
-                      calendar=ds$dim[['time']]$calendar)
-# Create output variable
-var_out <- ncvar_def(ds$var[[1]]$name, units=ds$var[[1]]$units, dim=list(dim_lon,dim_lat,dim_time), missval=NA, prec='double')
-
-# Create output dataset
-ds_out <- nc_create('/storage/home/jwo118/temp/test.nc',var_out,force_v4=TRUE)
-
-# Write data
-ncvar_put(ds_out,vals=a_debias)
-
-# Close
-nc_close(ds_out)
-
-
-
-#library(sp)
-#library(doParallel)
-#library(foreach)
-#library(rgdal)
-#library(gstat)
-#library(spacetime)
-#library(xts)
-#
-#elem <- commandArgs(TRUE)[1]
-#print(paste0("Running for ",elem))
-#
-#ushcn_anom <- read_anoms(cfg$USHCN_CONFIG[[paste0('FPATH_ANN_ANOMS_',toupper(elem))]])
-#
-## Load previously calculated variogram
-#load(file.path(cfg$USHCN_CONFIG$PATH_RDATA, 'ushcn_vgms.RData'))        
-#elem_vgm <- get(paste0('vgm_', elem))
-#
-## Load interpolation raster grid
-#agrid <- raster(file.path(cfg$USHCN_CONFIG$PATH_RASTER, 'mask_conus_25deg.tif'))
-## Make sure projection is the same as stns.
-#proj4string(agrid) <- proj4string(ushcn_anom)
-## Convert to SpatialPixelsDataFrame to define grid
-## for interpolations
-#spdf_agrid <- as(agrid,'SpatialPixelsDataFrame')
-#
-## Get years over which to interpolate
-#uyrs <- as.character(xts::.indexyear(ushcn_anom@time) + 1900)
-#
-#fpath_log <- file.path(cfg$USHCN_CONFIG$PATH_LOG, 'interp_anom_by_year.log')
-#writeLines(c(""),fpath_log)
-#cl <- makeCluster(3)
-#registerDoParallel(cl)
-#
-#
-#anom_stack <- foreach(yr=uyrs) %dopar%
-#    {
-#      library(spacetime)
-#      library(gstat)
-#      library(raster)
-#      
-#      anom_kriged <- krige(as.formula(paste0(elem,'~1')), ushcn_anom[, yr, elem],
-#          spdf_agrid, model=elem_vgm, nmax=100)
-#      
-#      anom_kriged <- as(anom_kriged['var1.pred'],'RasterLayer')
-#      
-#      fpath_out <- file.path(cfg$USHCN_CONFIG$PATH_RASTER_ANN_ANOMS,
-#          paste0("ann_anom_",elem,"_",yr,".tif"))
-#      writeRaster(anom_kriged,fpath_out)
-#      cat(sprintf("Finished processing %s \n",yr), file=fpath_log, append=TRUE)
-#      
-#      return(anom_kriged)
-#      
-#    }
-#stopCluster(cl)
-
-anom_stack <- stack(anom_stack)
+stopCluster(cl)
