@@ -68,12 +68,15 @@ mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks, 
     vals_mod_fut <- mod[a_idx_fut]
     vals_mod_fut_adj <- xts(vals_mod_fut)
     
+    xtsAttributes(vals_mod_train)$modname <- paste(xtsAttributes(vals_mod_train)$modname,a_idx_fut,sep='_')
+    xtsAttributes(vals_mod_fut_adj) <- xtsAttributes(vals_mod_train)
+    
     for (a_day in row.names(masks_mthday_fut)) {   
       
       mask_win_train <- masks_win_train[a_day,]
       mask_win_fut <- masks_win_fut[a_day,]
       mask_day_fut <- masks_mthday_fut[a_day,]
-      
+            
       vals_mod_fut_adj[mask_day_fut] <- bias_func(vals_obs[mask_win_train],
                                                   vals_mod_train[mask_win_train],
                                                   vals_mod_fut[mask_win_fut],
@@ -216,7 +219,10 @@ wetday_threshold <- function(obs, mod) {
     thres <- 0
     
     if (ndif != 0) {
-      print(sprintf("Warning: model has dry bias of %d days.", ndif))
+      
+      #cat(sprintf("Warning: %s has dry bias of %d days over %d total days from %s-%s. \n", xtsAttributes(mod)$modname, ndif,length(obs),strftime(min(index(obs)),'%Y'),strftime(max(index(obs)),'%Y')), file=fpath_log, append=TRUE)
+      
+      print(sprintf("Warning: %s has dry bias of %d days over %d total days from %s-%s", xtsAttributes(mod)$modname, ndif,length(obs),strftime(min(index(obs)),'%Y'),strftime(max(index(obs)),'%Y')))
     }
 
   }

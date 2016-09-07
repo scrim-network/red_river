@@ -43,7 +43,7 @@ a_obs <- list('tas'=a_obs_tair, 'pr'=a_obs_prcp)
 
 fpath_log <- file.path('/storage/home/jwo118/group_store/red_river/logs/bias_correct.log')
 writeLines(c(""),fpath_log)
-cl <- makeCluster(3)
+cl <- makeCluster(19)
 registerDoParallel(cl)
 
 results <- foreach(fpath=fpaths_in) %dopar% {
@@ -51,6 +51,7 @@ results <- foreach(fpath=fpaths_in) %dopar% {
   library(ncdf4)
   library(xts)
   source('/storage/home/jwo118/projects/red_river/esd_r/debias.R')
+  sink(fpath_log, append=TRUE)
   
   cat(sprintf("Started processing %s \n", fpath), file=fpath_log, append=TRUE)
   
@@ -68,9 +69,8 @@ results <- foreach(fpath=fpaths_in) %dopar% {
       mod_rc <- xts(a[r,c,],times_ptype)
       obs_rc <- xts(a_obs[[elem]][r,c,],times_obs)
       merge_rc <- merge.xts(obs_rc, mod_rc)
+      xtsAttributes(merge_rc) <- list(modname=sprintf('%s_r%dc%d',basename(fpath),r,c))
       a_debias[r,c,] <- mw_bias_correct(merge_rc[,1], merge_rc[,2], idx_train, idx_fut, bias_func, win_masks, win_masks1)
-      
-      cat(sprintf("Finished processing %s \n", fpath), file=fpath_log, append=TRUE)
       
     }
     
@@ -106,6 +106,8 @@ results <- foreach(fpath=fpaths_in) %dopar% {
   # Close
   nc_close(ds_out)
   nc_close(ds)
+  
+  cat(sprintf("Finished processing %s \n", fpath), file=fpath_log, append=TRUE)
   
   return(1)
       
