@@ -175,9 +175,9 @@ edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   pred_fut0 <- pred_fut
   pred_fut_subset0 <- pred_fut_subset
   
-  pred_train0[pred_train0 < wetday_t] = 0
-  pred_fut0[pred_fut0 < wetday_t] = 0
-  pred_fut_subset0[pred_fut_subset0 < wetday_t] = 0
+  pred_train0[pred_train0 <= wetday_t] = 0
+  pred_fut0[pred_fut0 <= wetday_t] = 0
+  pred_fut_subset0[pred_fut_subset0 <= wetday_t] = 0
   
   obs_wet <- obs[obs > 0]
   pred_train_wet  <- pred_train0[pred_train0 > 0]
@@ -214,7 +214,12 @@ wetday_threshold <- function(obs, mod) {
   ndif <- nwet_mod-nwet_obs
   
   if (ndif > 0) {
-    thres <- sort(as.numeric(mod[mod > 0]))[ndif+1]
+    thres <- sort(as.numeric(mod[mod > 0]))[ndif]
+    
+    if (sum(mod > thres) != nwet_obs) {
+      print(sprintf("Warning: %s has inexact prcp threshold. With threshold, ndry modeled = %d. ndry obs = %d",xtsAttributes(mod)$modname,sum(mod <= thres),sum(obs == 0)))
+    }
+    
   } else {
     thres <- 0
     
@@ -226,7 +231,6 @@ wetday_threshold <- function(obs, mod) {
     }
 
   }
- 
   return(thres)
   
 }
