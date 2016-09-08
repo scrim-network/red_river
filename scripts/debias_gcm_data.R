@@ -13,6 +13,11 @@ paths_out = sapply(basename(paths_in),function(x){file.path(path_out_cmip5,x)}, 
 for (apath in paths_out) dir.create(apath, showWarnings=FALSE, recursive=TRUE)
 fpaths_in <- Sys.glob(file.path(paths_in,'*'))
 
+# Remove files already completed
+fpaths_out_exist <- Sys.glob(file.path(paths_out,'*'))
+mask_incmplt <- !(basename(fpaths_in) %in% basename(fpaths_out_exist))
+fpaths_in <- fpaths_in[mask_incmplt]
+
 ds_obs_tair <- nc_open('/storage/home/jwo118/group_store/red_river/aphrodite/resample/APHRODITE.SAT.0p25deg.remapcon.1deg.nc')
 ds_obs_prcp <- nc_open('/storage/home/jwo118/group_store/red_river/aphrodite/resample/APHRODITE.PCP.0p25deg.remapcon.1deg.nc')
 
@@ -108,6 +113,8 @@ results <- foreach(fpath=fpaths_in) %dopar% {
   nc_close(ds)
   
   cat(sprintf("Finished processing %s \n", fpath), file=fpath_log, append=TRUE)
+  
+  sink()
   
   return(1)
       
