@@ -25,6 +25,9 @@ class RedRiverConfig():
 
         self.path_cmip5_resample = os.path.join(self.data_root, 'cmip5_resample')
         mkdir_p(self.path_cmip5_resample)
+        
+        self.path_aphrodite_resample = os.path.join(self.data_root, 'aphrodite_resample')
+        mkdir_p(self.path_aphrodite_resample)
 
     def to_str_dict(self):
         

@@ -1,31 +1,40 @@
-import xarray as xr
-import numpy as np
-import itertools
-
 '''
-CDO Commands
-cdo remapcon,/storage/home/jwo118/group_store/red_river/cdo_grid_1deg_red_river /storage/home/jwo118/group_store/red_river/aphrodite/APHRODITE.Monsoon_Asia.SAT.0p25deg.v1204r1.1961-2007.nc remapcon.nc
-cdo remapcon,/storage/home/jwo118/group_store/red_river/cdo_grid_1deg_red_river /storage/home/jwo118/group_store/red_river/aphrodite/APHRODITE.Monsoon_Asia.PCP.0p25deg.v1101r2.1961-2007.nc APHRODITE.PCP.0p25deg.remapco
+Script to resample APHRODITE grids with cdo.
 '''
 
+import os
+import esd
+import subprocess
 
 if __name__ == '__main__':
     
-    ds_src = xr.open_dataset('/storage/home/jwo118/group_store/red_river/aphrodite/APHRODITE.Monsoon_Asia.PCP.0p25deg.v1101r2.1961-2007.nc')
-    ds_target = xr.open_dataset('/storage/group/kzk10_collab/red_river/cmip5_resample/historical+rcp85_merged/tas.day.CCSM4.historical+rcp85.r2i1p1.18500101-21001231.nc')
+    # Downsample from native 0.25deg to 1deg Red River GCM grid
+    fpath_cdo_grid_def = os.path.join(esd.cfg.path_data_bbox, 'cdo_grid_1deg_red_river')
     
-    da = ds_src.PCP[:,139:163,159:187].load()
+    def downsample_cdo(fpath_in, fpath_out):
+        cmd = "cdo remapcon,%s %s %s"%(fpath_cdo_grid_def, fpath_in, fpath_out)
+        print cmd
+        subprocess.call(cmd, shell=True)
     
-    x = [(i,i+4) for i in np.arange(da.lon.size,step=4)]
-    y = [(i,i+4) for i in np.arange(da.lat.size,step=4)]
+    fpath_out_1deg_prcp = os.path.join(esd.cfg.path_aphrodite_resample, 'aprhodite_redriver_pcp_1961_2007_1deg.nc')
+    downsample_cdo(esd.cfg.fpath_aphrodite_prcp, fpath_out_1deg_prcp)
     
-    a = np.empty(ds_target.tas[0].size)
-    
-    combos = [i for i in itertools.product(y,x)]
-    
-    for i,r in enumerate(combos):
-        a[i] = da[4000,r[0][0]:r[0][1],r[1][0]:r[1][1]].mean()
+    fpath_out_1deg_tair = os.path.join(esd.cfg.path_aphrodite_resample, 'aprhodite_redriver_sat_1961_2007_1deg.nc')
+    downsample_cdo(esd.cfg.fpath_aphrodite_tair, fpath_out_1deg_tair)
         
-    a = a.reshape(ds_target.tas[0].shape)
+    # Upsample 1deg downsampled grids to Red River 0.25deg Aphrodite grid with bicubic interpolation
+    # These are used in the analog downscaling procedure
+    fpath_cdo_grid_def = os.path.join(esd.cfg.path_data_bbox, 'cdo_grid_p25deg_red_river')
     
-    a = xr.DataArray(a,coords=[ds_target.tas.lat,ds_target.tas.lon])    
+    def upsample_cdo(fpath_in, fpath_out):
+        cmd = "cdo remapbic,%s %s %s"%(fpath_cdo_grid_def, fpath_in, fpath_out)
+        print cmd
+        subprocess.call(cmd, shell=True)
+    
+    fpath_out_p25deg_prcp = os.path.join(esd.cfg.path_aphrodite_resample,
+                                         'aprhodite_redriver_pcp_1961_2007_p25deg_bicubic.nc')
+    upsample_cdo(fpath_out_1deg_prcp, fpath_out_p25deg_prcp)
+    
+    fpath_out_p25deg_tair = os.path.join(esd.cfg.path_aphrodite_resample,
+                                         'aprhodite_redriver_sat_1961_2007_p25deg_bicubic.nc')
+    upsample_cdo(fpath_out_1deg_tair, fpath_out_p25deg_tair)     
