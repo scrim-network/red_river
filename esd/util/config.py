@@ -20,6 +20,11 @@ class RedRiverConfig():
         
         self.fpath_aphrodite_prcp = cfg.get('REDRIVER_CONFIG', 'FPATH_APHRODITE_PRCP')
         self.fpath_aphrodite_tair = cfg.get('REDRIVER_CONFIG', 'FPATH_APHRODITE_TAIR')
+        
+        self.path_cmip5_archive = cfg.get('REDRIVER_CONFIG', 'PATH_CMIP5_ARCHIVE')
+
+        self.path_cmip5_resample = os.path.join(self.data_root, 'cmip5_resample')
+        mkdir_p(self.path_cmip5_resample)
 
     def to_str_dict(self):
         
