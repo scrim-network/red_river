@@ -2,11 +2,11 @@
 Script to create rasters representing the Red River spatial domain grid
 '''
 
-import xarray as xr
-import numpy as np
 from osgeo import gdalconst
 import esd
+import numpy as np
 import os
+import xarray as xr
 
 if __name__ == '__main__':
     
