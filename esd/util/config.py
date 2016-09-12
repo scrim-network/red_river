@@ -3,6 +3,7 @@ from ConfigParser import ConfigParser
 from copy import copy
 import numpy as np
 import os
+import pandas as pd
 
 class RedRiverConfig():
     
@@ -26,9 +27,15 @@ class RedRiverConfig():
         self.path_cmip5_resample = os.path.join(self.data_root, 'cmip5_resample')
         mkdir_p(self.path_cmip5_resample)
         
+        self.path_cmip5_trends = os.path.join(self.data_root, 'cmip5_trends')
+        mkdir_p(self.path_cmip5_trends)
+        
         self.path_aphrodite_resample = os.path.join(self.data_root, 'aphrodite_resample')
         mkdir_p(self.path_aphrodite_resample)
-
+        
+        self.start_date_baseline = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'START_DATE_BASELINE'))
+        self.end_date_baseline = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'END_DATE_BASELINE'))
+        
     def to_str_dict(self):
         
         a_dict = copy(self.__dict__)

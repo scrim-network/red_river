@@ -13,7 +13,7 @@ def unit_convert_pr(da):
 
 def unit_convert_tas(da):
     
-    # Convert from kg m-2 s-1 to mm per day
+    # Convert from Kelvin to Celsius
     assert da.units == 'K'
     da = da-273.15
     da.attrs['units'] = 'C'
