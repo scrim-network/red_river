@@ -1,6 +1,12 @@
-import xarray as xr
-import pandas as pd
+'''
+Script for and prototyping and testing precipitation downscaling approaches.
+'''
+
+import esd
 import numpy as np
+import os
+import pandas as pd
+import xarray as xr
 
 def convert_times(da):
     
@@ -24,8 +30,6 @@ def window_masks(time_idx, winsize=91):
         mth_day_win = pd.date_range(a_date - delta, a_date + delta).strftime('%m-%d')
         win_masks.values[i,:] = np.in1d(mth_day, mth_day_win)
     
-
-   
     # Add month day win for leap day
     a_date = pd.Timestamp('2008-02-29')
     mth_day_win = pd.date_range(a_date - delta, a_date + delta).strftime('%m-%d')
@@ -41,19 +45,19 @@ def window_masks(time_idx, winsize=91):
 
 if __name__ == '__main__':
     
-    start_year_train = '1961'
-    end_year_train = '1990'
-    start_year_test = '1991'
-    end_year_test = '2007'
+#     start_year_train = '1961'
+#     end_year_train = '1990'
+#     start_year_test = '1991'
+#     end_year_test = '2007'
     
     start_year_train = '1978'
     end_year_train = '2007'
     start_year_test = '1961'
     end_year_test = '1977'
     
-    
-    da_aphro = xr.open_dataset('/storage/home/jwo118/group_store/red_river/aphrodite/APHRODITE.Monsoon_Asia.PCP.0p25deg.v1101r2.1961-2007.nc').PCP
-    da_aphro_cg = xr.open_dataset('/storage/home/jwo118/group_store/red_river/aphrodite/resample/APHRODITE.PCP.0p25deg.remapcon.1deg.buf.remapbic.p25deg.nc').PCP
+    da_aphro = xr.open_dataset(esd.cfg.fpath_aphrodite_prcp).PCP
+    da_aphro_cg = xr.open_dataset(os.path.join(esd.cfg.path_aphrodite_resample,
+                                               'aphrodite_redriver_pcp_1961_2007_p25deg_bicubic.nc')).PCP
     
     da_aphro['time'] = convert_times(da_aphro)
     da_aphro_cg['time'] = convert_times(da_aphro_cg)
@@ -104,11 +108,14 @@ if __name__ == '__main__':
         da_gcm_d.loc[a_date] = vals_d
         
     ann_mean_d = da_gcm_d.resample('AS', dim='time', how='sum',skipna=False).mean(dim='time')
-    ann_mean_obs = da_aphro.loc[start_year_test:end_year_test].resample('AS', dim='time', how='sum',skipna=False).mean(dim='time')
+    ann_mean_obs = da_aphro.loc[start_year_test:end_year_test].resample('AS',
+                                                                        dim='time',
+                                                                        how='sum',
+                                                                        skipna=False).mean(dim='time')
 
     (((ann_mean_d-ann_mean_obs)/ann_mean_obs)*100).plot()
     
     nwet_d = (da_gcm_d > 0).sum(dim='time')
     nwet_obs = (da_aphro.loc[start_year_test:end_year_test] > 0).sum(dim='time').astype(np.float)
-    
+    nwet_obs.values[ann_mean_d.isnull().values] = np.nan
     
