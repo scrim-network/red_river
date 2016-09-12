@@ -1,24 +1,32 @@
+'''
+Script for generating plot summaries of GCM precipitation and temperature
+trends by RCP and cluster.
+'''
+
+
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import esd
+import os
 
-anom_fpaths = [('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_tas_2006_2099_ann.csv','tair_ann'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_tas_2006_2099_mths10-11.csv','tair_mths10-11'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_tas_2006_2099_mths12-1-2.csv','tair_mths12-1-2'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_tas_2006_2099_mths4-5.csv','tair_mths4-5'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_tas_2006_2099_mths6-7-8-9.csv','tair_mths6-7-8-9'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_pr_2006_2099_ann.csv','prcp_ann'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_pr_2006_2099_mths10-11.csv','prcp_mths10-11'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_pr_2006_2099_mths12-1-2.csv','prcp_mths12-1-2'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_pr_2006_2099_mths4-5.csv','prcp_mths4-5'),
-               ('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/anoms_pr_2006_2099_mths6-7-8-9.csv','prcp_mths6-7-8-9')]
+anom_fpaths = [(os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_ann.csv'),'tair_ann'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths10-11.csv'),'tair_mths10-11'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths12-1-2.csv'),'tair_mths12-1-2'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths4-5.csv'),'tair_mths4-5'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths6-7-8-9.csv'),'tair_mths6-7-8-9'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_ann.csv'),'prcp_ann'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths10-11.csv'),'prcp_mths10-11'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths12-1-2.csv'),'prcp_mths12-1-2'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths4-5.csv'),'prcp_mths4-5'),
+               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths6-7-8-9.csv'),'prcp_mths6-7-8-9')]
 
 def line_rcp():
         
     anoms_all = []
     
-    for fpath,vname in anom_fpaths[5:]:#anom_fpaths[5:]:
+    for fpath,vname in anom_fpaths:
         
         print vname
         
@@ -39,28 +47,30 @@ def line_rcp():
         anoms_all.append(rcp_means)
         
     anoms_all = pd.concat(anoms_all,axis=0,ignore_index=True)
+    anoms_tair = anoms_all[anoms_all.vname.str.startswith('tair')]
+    anoms_prcp = anoms_all[anoms_all.vname.str.startswith('prcp')]
     
     # Tair
-    anoms_all = anoms_all.rename(columns={'anomaly':'anomaly (degC)','vname':'time window'})
-    anoms_all = anoms_all.replace('tair_ann','annual')
-    anoms_all = anoms_all.replace('tair_mths10-11','Oct,Nov')
-    anoms_all = anoms_all.replace('tair_mths12-1-2','Dec,Jan,Feb')
-    anoms_all = anoms_all.replace('tair_mths4-5','Apr,May')
-    anoms_all = anoms_all.replace('tair_mths6-7-8-9','Jun,Jul,Aug,Sep')
+    anoms_tair = anoms_tair.rename(columns={'anomaly':'anomaly (degC)','vname':'time window'})
+    anoms_tair = anoms_tair.replace('tair_ann','annual')
+    anoms_tair = anoms_tair.replace('tair_mths10-11','Oct,Nov')
+    anoms_tair = anoms_tair.replace('tair_mths12-1-2','Dec,Jan,Feb')
+    anoms_tair = anoms_tair.replace('tair_mths4-5','Apr,May')
+    anoms_tair = anoms_tair.replace('tair_mths6-7-8-9','Jun,Jul,Aug,Sep')
     
-    g = sns.FacetGrid(anoms_all, col="time window", hue="rcp",col_wrap=2,sharey=True)
+    g = sns.FacetGrid(anoms_tair, col="time window", hue="rcp",col_wrap=2,sharey=True)
     g = (g.map(plt.plot, "time", "anomaly (degC)"))
     plt.legend(bbox_to_anchor=(1.75, 1))
     
     # Prcp
-    anoms_all = anoms_all.rename(columns={'anomaly':'anomaly (fraction)','vname':'time window'})
-    anoms_all = anoms_all.replace('prcp_ann','annual')
-    anoms_all = anoms_all.replace('prcp_mths10-11','Oct,Nov')
-    anoms_all = anoms_all.replace('prcp_mths12-1-2','Dec,Jan,Feb')
-    anoms_all = anoms_all.replace('prcp_mths4-5','Apr,May')
-    anoms_all = anoms_all.replace('prcp_mths6-7-8-9','Jun,Jul,Aug,Sep')
+    anoms_prcp = anoms_prcp.rename(columns={'anomaly':'anomaly (fraction)','vname':'time window'})
+    anoms_prcp = anoms_prcp.replace('prcp_ann','annual')
+    anoms_prcp = anoms_prcp.replace('prcp_mths10-11','Oct,Nov')
+    anoms_prcp = anoms_prcp.replace('prcp_mths12-1-2','Dec,Jan,Feb')
+    anoms_prcp = anoms_prcp.replace('prcp_mths4-5','Apr,May')
+    anoms_prcp = anoms_prcp.replace('prcp_mths6-7-8-9','Jun,Jul,Aug,Sep')
     
-    g = sns.FacetGrid(anoms_all, col="time window", hue="rcp",col_wrap=2,sharey=False)
+    g = sns.FacetGrid(anoms_prcp, col="time window", hue="rcp",col_wrap=2,sharey=False)
     g = (g.map(plt.plot, "time", "anomaly (fraction)"))
     plt.legend(bbox_to_anchor=(1.75, 1))
     
@@ -69,14 +79,13 @@ def line_rcp():
     
 def line_gcm_cluster():
     
-    
-    clusters = pd.read_csv('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/cluster_nums.csv')
+    clusters = pd.read_csv(os.path.join(esd.cfg.path_cmip5_trends, 'cluster_nums.csv'))
     clusters.columns = ['model_name','k.cluster']
     clusters = clusters.set_index('model_name')
     
     anoms_all = []
     
-    for fpath,vname in anom_fpaths:#anom_fpaths[5:]:
+    for fpath,vname in anom_fpaths:
         
         print vname
         
@@ -96,48 +105,43 @@ def line_gcm_cluster():
         anoms_all.append(cluster_means)
         
     anoms_all = pd.concat(anoms_all,axis=0,ignore_index=True)
+    anoms_tair = anoms_all[anoms_all.vname.str.startswith('tair')]
+    anoms_prcp = anoms_all[anoms_all.vname.str.startswith('prcp')]
     
     # Tair
-    anoms_all = anoms_all.rename(columns={'anomaly':'anomaly (degC)','vname':'time window'})
-    anoms_all = anoms_all.replace('tair_ann','annual')
-    anoms_all = anoms_all.replace('tair_mths10-11','Oct,Nov')
-    anoms_all = anoms_all.replace('tair_mths12-1-2','Dec,Jan,Feb')
-    anoms_all = anoms_all.replace('tair_mths4-5','Apr,May')
-    anoms_all = anoms_all.replace('tair_mths6-7-8-9','Jun,Jul,Aug,Sep')
+    anoms_tair = anoms_tair.rename(columns={'anomaly':'anomaly (degC)','vname':'time window'})
+    anoms_tair = anoms_tair.replace('tair_ann','annual')
+    anoms_tair = anoms_tair.replace('tair_mths10-11','Oct,Nov')
+    anoms_tair = anoms_tair.replace('tair_mths12-1-2','Dec,Jan,Feb')
+    anoms_tair = anoms_tair.replace('tair_mths4-5','Apr,May')
+    anoms_tair = anoms_tair.replace('tair_mths6-7-8-9','Jun,Jul,Aug,Sep')
     
-    g = sns.FacetGrid(anoms_all, col="time window", hue="cluster",col_wrap=2,palette=sns.color_palette("husl", 12),sharey=True)
+    g = sns.FacetGrid(anoms_tair, col="time window", hue="cluster",col_wrap=2,
+                      palette=sns.color_palette("husl", 12),sharey=True)
     g = (g.map(plt.plot, "time", "anomaly (degC)"))
     plt.legend(bbox_to_anchor=(1.75, 1))
     
     # Prcp
-    anoms_all = anoms_all.rename(columns={'anomaly':'anomaly (fraction)','vname':'time window'})
-    anoms_all = anoms_all.replace('prcp_ann','annual')
-    anoms_all = anoms_all.replace('prcp_mths10-11','Oct,Nov')
-    anoms_all = anoms_all.replace('prcp_mths12-1-2','Dec,Jan,Feb')
-    anoms_all = anoms_all.replace('prcp_mths4-5','Apr,May')
-    anoms_all = anoms_all.replace('prcp_mths6-7-8-9','Jun,Jul,Aug,Sep')
+    anoms_prcp = anoms_prcp.rename(columns={'anomaly':'anomaly (fraction)','vname':'time window'})
+    anoms_prcp = anoms_prcp.replace('prcp_ann','annual')
+    anoms_prcp = anoms_prcp.replace('prcp_mths10-11','Oct,Nov')
+    anoms_prcp = anoms_prcp.replace('prcp_mths12-1-2','Dec,Jan,Feb')
+    anoms_prcp = anoms_prcp.replace('prcp_mths4-5','Apr,May')
+    anoms_prcp = anoms_prcp.replace('prcp_mths6-7-8-9','Jun,Jul,Aug,Sep')
     
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-    g = sns.FacetGrid(anoms_all, col="time window", hue="cluster",col_wrap=2,palette=sns.color_palette("husl", 12),sharey=False)
+    g = sns.FacetGrid(anoms_prcp, col="time window", hue="cluster",col_wrap=2,
+                      palette=sns.color_palette("husl", 12),sharey=False)
     g = (g.map(plt.plot, "time", "anomaly (fraction)"))
     plt.legend(bbox_to_anchor=(1.75, 1))
     
     for ax in g.axes:
         ax.axhline(1,color='k',lw=.5)
     
-    
-    anoms = pd.read_csv(anom_fpaths[0][0], index_col='time')
-    
-    clusters_col = clusters.loc[anoms.columns,'k.cluster']
-    
-    cluster_means = pd.concat([anoms.loc[:,clusters_col==c].mean(axis=1) for c in np.arange(1,13)],axis=1)
-
 def heatmap_gcm_rcp():
     
     anoms_all = []
     
-    for fpath,vname in anom_fpaths:#anom_fpaths[5:]:
+    for fpath,vname in anom_fpaths:
         
         print vname
         
@@ -191,11 +195,10 @@ def heatmap_gcm_rcp():
         anoms_prcp.index = anoms_prcp.index.droplevel(0)
         anoms_prcp.index.name = None
         
-
-
         ax = plt.subplot(4,2,i)
         i+=1
-        sns.heatmap(anoms_tair,vmin=0,vmax=5,xticklabels=True, yticklabels=True,annot=True,fmt='.1f',annot_kws={'fontsize':7})
+        sns.heatmap(anoms_tair,vmin=0,vmax=5,xticklabels=True, yticklabels=True,
+                    annot=True,fmt='.1f',annot_kws={'fontsize':7})
         plt.yticks(rotation=0)
         plt.xticks(rotation=90)
         plt.xlabel('')
@@ -203,11 +206,11 @@ def heatmap_gcm_rcp():
         if cname != 'rcp85':
             plt.gca().get_xaxis().set_ticks([])
         
-        
         ax = plt.subplot(4,2,i)
         i+=1
         
-        sns.heatmap(anoms_prcp, cmap='RdBu', vmin=.9,vmax=1.1,xticklabels=True, yticklabels=True,annot=True,fmt='.2f',annot_kws={'fontsize':7})
+        sns.heatmap(anoms_prcp, cmap='RdBu', vmin=.9,vmax=1.1,xticklabels=True,
+                    yticklabels=True,annot=True,fmt='.2f',annot_kws={'fontsize':7})
         plt.yticks(rotation=0)
         plt.xticks(rotation=90)
         plt.xlabel('')
@@ -217,10 +220,9 @@ def heatmap_gcm_rcp():
         if cname != 'rcp85':
             plt.gca().get_xaxis().set_ticks([])
 
-
 def heatmap_gcm_cluster():
 
-    clusters = pd.read_csv('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/cluster_nums.csv')
+    clusters = pd.read_csv(os.path.join(esd.cfg.path_cmip5_trends, 'cluster_nums.csv'))
     clusters.columns = ['model_name','k.cluster']
     clusters = clusters.set_index('model_name')
     
@@ -278,11 +280,10 @@ def heatmap_gcm_cluster():
         anoms_prcp.index = anoms_prcp.index.droplevel(0)
         anoms_prcp.index.name = None
         
-
-
         ax = plt.subplot(12,2,i)
         i+=1
-        sns.heatmap(anoms_tair,vmin=0,vmax=5,xticklabels=True, yticklabels=True,annot=True,fmt='.1f',annot_kws={'fontsize':7})
+        sns.heatmap(anoms_tair,vmin=0,vmax=5,xticklabels=True, yticklabels=True,
+                    annot=True,fmt='.1f',annot_kws={'fontsize':7})
         plt.yticks(rotation=0)
         plt.xticks(rotation=90)
         plt.xlabel('')
@@ -290,11 +291,11 @@ def heatmap_gcm_cluster():
         if cname != 'cluster12':
             plt.gca().get_xaxis().set_ticks([])
         
-        
         ax = plt.subplot(12,2,i)
         i+=1
         
-        sns.heatmap(anoms_prcp, cmap='RdBu', vmin=.6,vmax=1.4,xticklabels=True, yticklabels=True,annot=True,fmt='.2f',annot_kws={'fontsize':7})
+        sns.heatmap(anoms_prcp, cmap='RdBu', vmin=.6,vmax=1.4,xticklabels=True,
+                    yticklabels=True,annot=True,fmt='.2f',annot_kws={'fontsize':7})
         plt.yticks(rotation=0)
         plt.xticks(rotation=90)
         plt.xlabel('')
@@ -303,15 +304,24 @@ def heatmap_gcm_cluster():
         
         if cname != 'cluster12':
             plt.gca().get_xaxis().set_ticks([])
-        
-        
-if __name__ == '__main__':
+
+def bar_cluster_cnts():
     
-    clusters = pd.read_csv('/storage/home/jwo118/group_store/red_river/cmip5_trends_r2/cluster_nums.csv')
+    clusters = pd.read_csv(os.path.join(esd.cfg.path_cmip5_trends, 'cluster_nums.csv'))
     clusters.columns = ['model_name','k.cluster']
     clusters = clusters.set_index('model_name')
     clusters['rcp'] = np.array([r.split('_')[1] for r in clusters.index])
     
     cnts = clusters.reset_index().groupby(['k.cluster','rcp']).count().reset_index()
+    cnts = cnts.rename(columns={'k.cluster':'cluster', 'model_name':'count'})
     
-    g = sns.factorplot(x="rcp", y="count", col='cluster', data=cnts,kind="bar",order=np.unique(clusters['rcp'].values),col_wrap=4)
+    g = sns.factorplot(x="rcp", y="count", col='cluster', data=cnts,kind="bar",order=np.unique(clusters['rcp'].values),col_wrap=4)    
+        
+if __name__ == '__main__':
+    
+    bar_cluster_cnts()
+    line_gcm_cluster()
+    heatmap_gcm_cluster()
+    
+    line_rcp()
+    heatmap_gcm_rcp()
