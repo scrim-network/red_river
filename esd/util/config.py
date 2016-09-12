@@ -13,6 +13,7 @@ class RedRiverConfig():
         cfg.read(fpath_ini)
         
         self.data_root = cfg.get('REDRIVER_CONFIG', 'data_root')
+        self.code_root = cfg.get('REDRIVER_CONFIG', 'code_root')
         
         bbox_str = cfg.get('REDRIVER_CONFIG', 'domain_bounds_red_river')
         self.bbox = tuple([np.float(i) for i in bbox_str.split(',')])
@@ -30,14 +31,24 @@ class RedRiverConfig():
         self.path_cmip5_trends = os.path.join(self.data_root, 'cmip5_trends')
         mkdir_p(self.path_cmip5_trends)
         
+        self.path_cmip5_wetbias = os.path.join(self.data_root, 'cmip5_wetbias')
+        mkdir_p(self.path_cmip5_wetbias)
+        
         self.path_cmip5_cleaned = os.path.join(self.data_root, 'cmip5_cleaned')
         mkdir_p(self.path_cmip5_cleaned)
+        
+        self.path_cmip5_debiased = os.path.join(self.data_root, 'cmip5_debiased')
+        mkdir_p(self.path_cmip5_debiased)
         
         self.path_aphrodite_resample = os.path.join(self.data_root, 'aphrodite_resample')
         mkdir_p(self.path_aphrodite_resample)
         
         self.start_date_baseline = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'START_DATE_BASELINE'))
         self.end_date_baseline = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'END_DATE_BASELINE'))
+        
+        self.path_logs = os.path.join(self.data_root, 'logs')
+        mkdir_p(self.path_logs)
+        
         
     def to_str_dict(self):
         

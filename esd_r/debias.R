@@ -1,7 +1,6 @@
-# TODO: Add comment
-# 
-# Author: jwo118
+# Functions for GCM bias correction
 ###############################################################################
+
 Sys.setenv(TZ="UTC")
 library(xts)
 
@@ -52,7 +51,8 @@ build_window_masks <- function(obs, idx_periods, winsize=31) {
   
 }
 
-mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks, win_masks_1day) {
+mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks,
+                            win_masks_1day, correct_win=TRUE) {
     
   mod_fut_adj <- NULL
   
@@ -68,7 +68,8 @@ mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks, 
     vals_mod_fut <- mod[a_idx_fut]
     vals_mod_fut_adj <- xts(vals_mod_fut)
     
-    xtsAttributes(vals_mod_train)$modname <- paste(xtsAttributes(vals_mod_train)$modname,a_idx_fut,sep='_')
+    xtsAttributes(vals_mod_train)$modname <- paste(xtsAttributes(vals_mod_train)$modname,
+                                                   a_idx_fut,sep='_')
     xtsAttributes(vals_mod_fut_adj) <- xtsAttributes(vals_mod_train)
     
     for (a_day in row.names(masks_mthday_fut)) {   
@@ -83,11 +84,15 @@ mw_bias_correct <- function(obs, mod, idx_train, idx_fut, bias_func, win_masks, 
                                                   vals_mod_fut[mask_day_fut])
     }
     
-    vals_mod_fut_adj_nowin <- bias_func(vals_obs, vals_mod_train, vals_mod_fut, vals_mod_fut) 
-    
-    # Bias correct vals_mod_fut_adj with vals_mod_fut_adj_nowin
-    vals_mod_fut_adj <- bias_func(vals_mod_fut_adj_nowin, vals_mod_fut_adj, vals_mod_fut_adj, vals_mod_fut_adj)
-    
+    if (correct_win) {
+      
+      vals_mod_fut_adj_nowin <- bias_func(vals_obs, vals_mod_train, vals_mod_fut, vals_mod_fut) 
+      
+      # Bias correct vals_mod_fut_adj with vals_mod_fut_adj_nowin
+      vals_mod_fut_adj <- bias_func(vals_mod_fut_adj_nowin, vals_mod_fut_adj,
+                                    vals_mod_fut_adj, vals_mod_fut_adj)
+    }
+
     mod_fut_adj <- rbind(mod_fut_adj, vals_mod_fut_adj)
     
   }
@@ -143,7 +148,7 @@ edqmap <- function(obs, pred_train, pred_fut, pred_fut_subset, delta_type='add')
     # If mapped_train is 0, delta will be Inf or NA. Set these to 1
     delta[is.infinite(delta) | is.na(delta)] = 1
     
-    #TODO: how to avoid extremely large deltas?
+    #TODO: Check for extremely large deltas?
        
   }
   
@@ -167,7 +172,6 @@ edqmap <- function(obs, pred_train, pred_fut, pred_fut_subset, delta_type='add')
   
 }
 
-
 edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   
   wetday_t <- wetday_threshold(obs, pred_train)
@@ -184,7 +188,8 @@ edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   pred_fut_wet  <- pred_fut0[pred_fut0 > 0]
   pred_fut_subset_wet  <- pred_fut_subset0[pred_fut_subset0 > 0]
   
-  pred_fut_adj_wet <- edqmap(obs_wet, pred_train_wet, pred_fut_wet, pred_fut_wet, delta_type='ratio')
+  pred_fut_adj_wet <- edqmap(obs_wet, pred_train_wet, pred_fut_wet,
+                             pred_fut_wet, delta_type='ratio')
   pred_fut_adj <- pred_fut0
   pred_fut_adj[pred_fut_adj > 0] = as.numeric(pred_fut_adj_wet)
   
@@ -192,7 +197,8 @@ edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   x <- mean(pred_fut0)/mean(pred_train0)
   
   # Bias correct base training period
-  pred_train_adj_wet <- edqmap(obs_wet, pred_train_wet, pred_train_wet, pred_train_wet, delta_type='ratio')
+  pred_train_adj_wet <- edqmap(obs_wet, pred_train_wet, pred_train_wet,
+                               pred_train_wet, delta_type='ratio')
   pred_train_adj <- pred_train0
   pred_train_adj[pred_train_adj > 0] = as.numeric(pred_train_adj_wet)
   
@@ -203,6 +209,18 @@ edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   pred_fut_adj <- pred_fut_adj*k
   
   return(pred_fut_adj[index(pred_fut_subset)])
+}
+
+wetday_bias <- function(obs, pred_train, pred_fut, pred_fut_subset) {
+  
+  nwet_obs <- sum(obs > 0)
+  nwet_mod <- sum(pred_train > 0)
+    
+  wet_bias <- pred_fut_subset
+  wet_bias[] <- nwet_mod/nwet_obs
+
+  return(wet_bias)
+  
 }
 
 # threshold below which mod prcp should be set to 0
@@ -217,7 +235,8 @@ wetday_threshold <- function(obs, mod) {
     thres <- sort(as.numeric(mod[mod > 0]))[ndif]
     
     if (sum(mod > thres) != nwet_obs) {
-      print(sprintf("Warning: %s has inexact prcp threshold. With threshold, ndry modeled = %d. ndry obs = %d",xtsAttributes(mod)$modname,sum(mod <= thres),sum(obs == 0)))
+      print(sprintf("Warning: %s has inexact prcp threshold. With threshold, ndry modeled = %d. ndry obs = %d",
+                    xtsAttributes(mod)$modname,sum(mod <= thres),sum(obs == 0)))
     }
     
   } else {
@@ -225,9 +244,9 @@ wetday_threshold <- function(obs, mod) {
     
     if (ndif != 0) {
       
-      #cat(sprintf("Warning: %s has dry bias of %d days over %d total days from %s-%s. \n", xtsAttributes(mod)$modname, ndif,length(obs),strftime(min(index(obs)),'%Y'),strftime(max(index(obs)),'%Y')), file=fpath_log, append=TRUE)
-      
-      print(sprintf("Warning: %s has dry bias of %d days over %d total days from %s-%s", xtsAttributes(mod)$modname, ndif,length(obs),strftime(min(index(obs)),'%Y'),strftime(max(index(obs)),'%Y')))
+      print(sprintf("Warning: %s has dry bias of %d days over %d total days from %s-%s",
+                    xtsAttributes(mod)$modname, ndif,length(obs),strftime(min(index(obs)),'%Y'),
+                    strftime(max(index(obs)),'%Y')))
     }
 
   }
