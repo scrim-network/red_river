@@ -30,6 +30,9 @@ class RedRiverConfig():
         self.path_cmip5_trends = os.path.join(self.data_root, 'cmip5_trends')
         mkdir_p(self.path_cmip5_trends)
         
+        self.path_cmip5_cleaned = os.path.join(self.data_root, 'cmip5_cleaned')
+        mkdir_p(self.path_cmip5_cleaned)
+        
         self.path_aphrodite_resample = os.path.join(self.data_root, 'aphrodite_resample')
         mkdir_p(self.path_aphrodite_resample)
         

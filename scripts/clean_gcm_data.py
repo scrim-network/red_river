@@ -1,22 +1,27 @@
+'''
+Script to clean GCM data: convert units, convert all calendars to standard
+365+leap year.
+'''
+
+from esd.util import clean_gcm_da, unit_convert_pr, unit_convert_tas, mkdir_p, StatusCheck
+import esd
 import glob
-import os
 import itertools
 import numpy as np
-import xarray as xr
+import os
 import pandas as pd
-from esd.util.gcm import clean_gcm_da, unit_convert_pr, unit_convert_tas
-from esd.util.misc import mkdir_p, StatusCheck
+import xarray as xr
 
 if __name__ == '__main__':
 
-    path_in_cmip5 = '/storage/home/jwo118/group_store/red_river/cmip5_resample'
-    path_out_cmip5 = '/storage/home/jwo118/group_store/red_river/cmip5_cleaned'
+    path_in_cmip5 = esd.cfg.path_cmip5_resample
+    path_out_cmip5 = esd.cfg.path_cmip5_cleaned
     paths_in = sorted(glob.glob(os.path.join(path_in_cmip5, '*')))
     paths_out = [os.path.join(path_out_cmip5,os.path.basename(apath)) for apath in paths_in]
     for apath in paths_out:
         mkdir_p(apath)
     
-    start_end = (pd.Timestamp('1976-01-01'), pd.Timestamp('2099-12-31'))
+    start_end = (esd.cfg.start_date_baseline, pd.Timestamp('2099-12-31'))
     
     fpaths_tas = sorted(list(itertools.chain.
                              from_iterable([glob.glob(os.path.join(apath,'tas.day*'))
@@ -53,7 +58,8 @@ if __name__ == '__main__':
     
     fpaths_df = pd.DataFrame([parse_fpath_info(fpath) for fpath in fpaths_all],
                              columns=['fpath','fname','elem','model_name','rcp_name',
-                                      'realization_name','start_yr','end_yr'])    
+                                      'realization_name','start_yr','end_yr'])
+        
     # Remove GCM files with no fpath info or incomplete records of the specified
     # period of interest
     mask_keep = ((fpaths_df.start_yr <= start_end[0].year) &
@@ -61,7 +67,7 @@ if __name__ == '__main__':
     fpaths_df = fpaths_df[mask_keep]
     
     unit_convert_funcs = {'pr':unit_convert_pr,
-                      'tas':unit_convert_tas}
+                          'tas':unit_convert_tas}
     
     schk = StatusCheck(len(fpaths_df), 10)
     
