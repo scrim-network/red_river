@@ -1,5 +1,6 @@
 import numpy as np
 from osgeo import gdal,osr
+import pandas as pd
 
 PROJECTION_GEO_WGS84 = 4326  # EPSG Code
 PROJECTION_GEO_NAD83 = 4269  # EPSG Code
@@ -350,3 +351,97 @@ class RasterDataset(object):
             i = n - 1
         
         return i
+
+def buffer_cdo_lonlat_grid_cfg(fpath_cdo_grid_cfg, buf, new_inc=None):
+    '''
+    Create a new CDO lonlat grid configuration based on applying a buffer to 
+    an existing CDO grid configuration.
+    
+    Parameters
+    ----------
+    fpath_cdo_grid_cfg : str
+        Path to existing CDO grid configuration
+    buf : float
+        Buffer in degrees
+    new_inc : float, optional
+        New grid increment/resolution
+    tair_var : str
+        The temperature variable ('tmin' or 'tmax') of focus.
+    nnr_ds : twx.db.NNRNghData
+        A NNRNghData object for loading reanalysis data to help supplement
+        the neighboring station data.
+    tair_mask : ndarray, optional
+        A boolean mask specifying which observations at the target should
+        artificially be set to nan. This can be used for cross-validation.
+        Mask size must equal the time series length specified by the passed
+        StationDataDb.
+    day_mask : boolean, optional
+        If true and tair_mask is not None, days with actual missing observations will
+        be removed before station mean and variance estimation. Ignored if
+        tair_mask is None.
+    nnghs : int, optional
+        The minimum neighboring observations required for each day.
+    nnghs_nnr : int, optional
+        The number of neighboring NCEP/NCAR Reanalysis grid cells
+        
+    Returns
+    ----------
+    lines_out : list of str
+        List of lines for new CDO configuration file
+    '''
+    grid_cfg = pd.read_csv(fpath_cdo_grid_cfg, sep='=', index_col=0,
+                           header=None, squeeze=True, skiprows=1)
+    grid_cfg.index = grid_cfg.index.str.strip()
+     
+    xlast = grid_cfg.loc['xfirst'] + ((grid_cfg.loc['xsize']-1) * grid_cfg.loc['xinc'])
+    lon = np.linspace(grid_cfg.loc['xfirst'], xlast, num=grid_cfg.loc['xsize'])
+     
+    ylast = grid_cfg.loc['yfirst'] + ((grid_cfg.loc['ysize']-1) * grid_cfg.loc['yinc'])
+    lat = np.linspace(grid_cfg.loc['yfirst'], ylast, num=grid_cfg.loc['ysize'])
+          
+    buf_xfirst = lon[0] - buf
+    buf_xlast = lon[-1] + buf
+    buf_nx = (np.abs((lon[0] - buf) - (lon[-1] + buf))/(grid_cfg.loc['xinc'])) + 1
+    buf_lon = np.linspace(buf_xfirst, buf_xlast, buf_nx)
+     
+    buf_yfirst = lat[0] - buf
+    buf_ylast = lat[-1] + buf
+    buf_ny = (np.abs((lat[0] - buf) - (lat[-1] + buf))/(grid_cfg.loc['yinc'])) + 1
+    buf_lat = np.linspace(buf_yfirst, buf_ylast, buf_ny)
+    
+    if new_inc is None:
+        
+        xinc = grid_cfg.loc['xinc']
+        yinc = grid_cfg.loc['yinc']
+        
+    else:
+        
+        x_extent_left =  buf_xfirst - (grid_cfg.loc['xinc']/2.0)
+        y_extent_left =  buf_yfirst - (grid_cfg.loc['yinc']/2.0)
+        
+        x_extent_right =  buf_xlast + (grid_cfg.loc['xinc']/2.0)
+        y_extent_right =  buf_ylast + (grid_cfg.loc['yinc']/2.0)
+        
+        buf_xfirst = x_extent_left + (new_inc/2.0)
+        buf_xlast = x_extent_right - (new_inc/2.0)
+        buf_nx = (np.abs(buf_xlast-buf_xfirst)/(new_inc)) + 1
+        buf_lon = np.linspace(buf_xfirst, buf_xlast, buf_nx)
+        
+        buf_yfirst = y_extent_left + (new_inc/2.0)
+        buf_ylast = y_extent_right - (new_inc/2.0)
+        buf_ny = (np.abs(buf_ylast-buf_yfirst)/(new_inc)) + 1
+        buf_lat = np.linspace(buf_yfirst, buf_ylast, buf_ny)
+        
+        xinc = new_inc
+        yinc = new_inc
+    
+    lines_out = ['gridtype = lonlat\n']
+    lines_out.append('xsize    = %d\n'%buf_nx)
+    lines_out.append('ysize    = %d\n'%buf_ny)
+    lines_out.append('xfirst   = %f\n'%buf_lon[0])
+    lines_out.append('xinc     = %f\n'%xinc)
+    lines_out.append('yfirst   = %f\n'%buf_lat[0])
+    lines_out.append('yinc     = %f\n'%yinc)
+     
+    return lines_out
+
