@@ -174,3 +174,40 @@ def downscale_analog(ds, win_masks):
         da_mod_d.loc[a_date] = vals_d
     
     return da_mod_d
+
+def validate_avg_total_prcp(mod_d, obs, months=None):
+    
+    if months is None:
+        
+        # Calculate annual avg totals
+        mod_d_avg = mod_d.resample('AS', dim='time', how='sum',skipna=False).mean(dim='time')
+        obs_avg = obs.resample('AS', dim='time',how='sum', skipna=False).mean(dim='time')
+        
+    else:
+        
+        mod_d_mthly = mod_d.resample('1MS', dim='time', how='sum', skipna=False)
+        obs_mthly = obs.resample('1MS', dim='time', how='sum', skipna=False)
+        
+        mask_season = np.in1d(mod_d_mthly['time.month'].values, months)
+        mask_season = xr.DataArray(mask_season, coords=[mod_d_mthly.time])
+        
+        mod_d_mthly = mod_d_mthly.where(mask_season)
+        obs_mthly = obs_mthly.where(mask_season)
+        
+        nmths = len(months)
+        mod_d_roller = mod_d_mthly.rolling(min_periods=nmths, center=False, time=nmths)
+        obs_roller = obs_mthly.rolling(min_periods=nmths, center=False, time=nmths)
+        
+        mod_d_avg = mod_d_roller.sum(skipna=False).mean(dim='time')
+        obs_avg = obs_roller.sum(skipna=False).mean(dim='time')
+        
+    # Calculate percent and absolute error
+    err = mod_d_avg-obs_avg
+    pct_err = (err/obs_avg)*100
+    obs_avg.name = 'obs_avg'
+    mod_d_avg.name = 'mod_avg'
+    err.name = 'err'
+    pct_err.name = 'pct_err'
+    
+    return xr.merge([err, pct_err, obs_avg, mod_d_avg])
+        
