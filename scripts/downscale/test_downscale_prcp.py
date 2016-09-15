@@ -2,120 +2,45 @@
 Script for and prototyping and testing precipitation downscaling approaches.
 '''
 
+from esd.downscale import setup_data_for_analog, downscale_analog_anoms,\
+    downscale_analog
 import esd
 import numpy as np
 import os
 import pandas as pd
 import xarray as xr
 
-def convert_times(da):
-    
-    times = pd.to_datetime(da.time.to_pandas().astype(np.str),
-                           format='%Y%m%d', errors='coerce')        
-    return times.values
-
-def window_masks(time_idx, winsize=91):
-    
-    delta = pd.Timedelta(days=np.round((float(winsize)-1)/2))
-
-    mth_day = time_idx.strftime('%m-%d')
-  
-    dates_yr = pd.date_range('2007-01-01', '2007-12-31')
-    
-    win_masks = pd.DataFrame(np.ones((dates_yr.size,time_idx.size), dtype=np.bool),
-                             index=dates_yr.strftime('%m-%d'),columns=time_idx,dtype=np.bool)
-    
-    for i,a_date in enumerate(dates_yr):
-        
-        mth_day_win = pd.date_range(a_date - delta, a_date + delta).strftime('%m-%d')
-        win_masks.values[i,:] = np.in1d(mth_day, mth_day_win)
-    
-    # Add month day win for leap day
-    a_date = pd.Timestamp('2008-02-29')
-    mth_day_win = pd.date_range(a_date - delta, a_date + delta).strftime('%m-%d')
-    
-    # Direct assignment via loc/iloc very slow?
-    win_masks.loc['02-29',:] = True
-    win_masks.values[-1,:] = np.in1d(mth_day, mth_day_win)
-    
-    win_masks = win_masks.sort_index(axis=0)
-    win_masks = win_masks.astype(np.bool)
-    
-    return win_masks
-
 if __name__ == '__main__':
     
-#     start_year_train = '1961'
-#     end_year_train = '1990'
-#     start_year_test = '1991'
-#     end_year_test = '2007'
-    
-    start_year_train = '1978'
-    end_year_train = '2007'
-    start_year_test = '1961'
-    end_year_test = '1977'
-    
-    da_aphro = xr.open_dataset(esd.cfg.fpath_aphrodite_prcp).PCP
-    da_aphro_cg = xr.open_dataset(os.path.join(esd.cfg.path_aphrodite_resample,
-                                               'aphrodite_redriver_pcp_1961_2007_p25deg_bicubic.nc')).PCP
-    
-    da_aphro['time'] = convert_times(da_aphro)
-    da_aphro_cg['time'] = convert_times(da_aphro_cg)
-    
-    # Subset original aphrodite dataset to Red River Domain
-    da_aphro = da_aphro.loc[:,da_aphro_cg.lat.values,da_aphro_cg.lon.values]
-    da_aprho = da_aphro.load()
-    
-    # Use validation time period as the test "GCM"
-    da_gcm = da_aphro_cg.loc[start_year_test:end_year_test].load()
-    # DataArray to store downscaled results
-    da_gcm_d = da_gcm.copy()
-    
-    # Subset da_aphro_cg to training period and load
-    da_aphro_cg = da_aphro_cg.loc[start_year_train:end_year_train].load()
-    win_masks = window_masks(da_aphro_cg.time.to_pandas().index)
-    
-    for a_date in da_gcm.time.to_pandas().index:
-        
-        print a_date
-        
-        vals_gcm = da_gcm.loc[a_date]
-        analog_pool = da_aphro_cg[win_masks.loc[a_date.strftime('%m-%d')].values]
-        rmse_analogs = np.sqrt((np.square(vals_gcm-analog_pool)).mean(dim=('lon','lat')))
-        vals_analog = analog_pool[rmse_analogs.values.argmin()]
-    
-        s = vals_gcm/vals_analog
-        s.values[np.logical_or(np.isinf(s.values),np.isnan(s.values))] = 0
-        s.values[vals_analog.isnull().values] = np.nan
-        
-        # Limit scaling factor by 6 standard deviations
-        try:
-             
-            st = s.copy()
-            st.values[st.values==0] = np.nan
-             
-            # Limit s by 6 std
-            sz = ((st - st.mean())/st.std())
-            max_s = s.values[sz.values <= 6].max()
-            min_s = s.values[sz.values >= -6].min()
-            s.values[sz.values > 6] = max_s
-            s.values[sz.values < -6] = min_s
-        except ValueError:
-            pass
-                
-        vals_d = da_aphro.loc[vals_analog.time.values]*s
-        
-        da_gcm_d.loc[a_date] = vals_d
-        
-    ann_mean_d = da_gcm_d.resample('AS', dim='time', how='sum',skipna=False).mean(dim='time')
-    ann_mean_obs = da_aphro.loc[start_year_test:end_year_test].resample('AS',
-                                                                        dim='time',
-                                                                        how='sum',
-                                                                        skipna=False).mean(dim='time')
-
-    (((ann_mean_d-ann_mean_obs)/ann_mean_obs)*100).plot()
-    
-    nwet_d = (da_gcm_d > 0).sum(dim='time')
-    nwet_obs = (da_aphro.loc[start_year_test:end_year_test] > 0).sum(dim='time').astype(np.float)
-    nwet_obs.values[ann_mean_d.isnull().values] = np.nan
-    
+    fpath_prcp_obs = esd.cfg.fpath_aphrodite_prcp
+    fpath_prcp_obsc = os.path.join(esd.cfg.path_aphrodite_resample,
+                                   'aprhodite_redriver_pcp_1961_2007_p25deg_remapbic.nc')
+    fpath_prcp_mod = fpath_prcp_obsc
+    base_start_year = '1961'
+    base_end_year = '1990'
+    downscale_start_year = '1991'
+    downscale_end_year = '2007'
+     
+    ds_data,win_masks = setup_data_for_analog(fpath_prcp_obs, fpath_prcp_obsc,
+                                              fpath_prcp_mod,
+                                              base_start_year, base_end_year,
+                                              downscale_start_year, downscale_end_year)
+     
+    mod_downscale_anoms = downscale_analog_anoms(ds_data, win_masks)
+    mod_downscale = downscale_analog(ds_data, win_masks)
+     
+     
+    da_obsc = xr.open_dataset(fpath_prcp_obsc).PCP.load()
+    da_obsc['time'] = pd.to_datetime(da_obsc.time.to_pandas().astype(np.str),
+                                     format='%Y%m%d', errors='coerce')
+    mod_downscale_cg = da_obsc.loc[downscale_start_year:downscale_end_year]
+         
+    mod_downscale_anoms.name = 'mod_d_anoms'
+    mod_downscale.name = 'mod_d'
+    mod_downscale_cg.name = 'mod_d_cg'
+     
+    obs = ds_data.obs.loc[downscale_start_year:downscale_end_year]
+     
+    ds_d = xr.merge([obs, mod_downscale_cg, mod_downscale, mod_downscale_anoms])
+    ds_d = ds_d.drop('month')
+    ds_d.to_netcdf(os.path.join(esd.cfg.data_root,'downscaling','downscale_tests.nc'))
