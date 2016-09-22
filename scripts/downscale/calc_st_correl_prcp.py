@@ -19,6 +19,7 @@ import os
 import pandas as pd
 import xarray as xr
 from esd.downscale.prcp import to_anomalies
+from scipy.stats.stats import spearmanr
 
 if __name__ == '__main__':
     
@@ -26,6 +27,7 @@ if __name__ == '__main__':
 #    downscale_end_year = '2007'
     downscale_start_year = '1961'
     downscale_end_year = '1977'
+    rfunc = lambda x,y: spearmanr(x,y)[0]
     
     ds_d = xr.open_dataset(os.path.join(esd.cfg.data_root,'downscaling',
                                         'downscale_tests_%s_%s.nc'%(downscale_start_year,
@@ -54,7 +56,7 @@ if __name__ == '__main__':
     
     for a_mth,a_mthname in zip(months,mth_names):
         # Spatial Coherence Annual
-        results = {mod_longname:validate_spatial_coherence(ds_d[mod_name],months=a_mth).r
+        results = {mod_longname:validate_spatial_coherence(ds_d[mod_name],rfunc,months=a_mth).r
                    for mod_longname,mod_name in zip(mod_longnames,mod_names)}
         results['Observed'] = validate_spatial_coherence(ds_d.obs, months=a_mth).r
     

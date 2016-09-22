@@ -1,1 +1,1 @@
-from prcp import *
+from common import *

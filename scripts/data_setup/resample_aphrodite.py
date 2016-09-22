@@ -21,7 +21,6 @@ if __name__ == '__main__':
     with open(fpath_cdo_red_river_6buf, 'w') as f:
         f.writelines(grid_cfg)
     
-    
     # Downsample from native 0.25deg to 1deg buffered Red River GCM grid
     
     def downsample_cdo(fpath_in, fpath_out):
@@ -47,7 +46,7 @@ if __name__ == '__main__':
         print cmd
         subprocess.call(cmd, shell=True)
     
-    resample_method = 'remapbil'
+    resample_method = 'remapbic'
     
     fpath_out_p25deg_prcp = os.path.join(esd.cfg.path_aphrodite_resample,
                                          'aprhodite_redriver_pcp_1961_2007_p25deg_%s.nc'%resample_method)
