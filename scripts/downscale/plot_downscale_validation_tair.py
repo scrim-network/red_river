@@ -306,8 +306,8 @@ if __name__ == '__main__':
 #                      'Analog Using\nAnomalies','Analog Using\nAbsolute (Interp Scale)',
 #                      'Analog Using\nAnomalies (Interp Scale)']
     
-    mod_names = ['mod_d_cg','mod_d_anoms']
-    mod_longnames = ['Coarsened\nAphrodite', 'Analog Using\nAnomalies']
+    mod_names = ['mod_d_cg','mod_d_anoms','mod_d_vclim']
+    mod_longnames = ['Coarsened\nAphrodite', 'Analog Using\nAnomalies','Analog Using\nAnomalies (Downscaled Climatology)']
     
     # Average total precipitation
     fpath_out = os.path.join(path_out,'avg_tair_ann.png')
