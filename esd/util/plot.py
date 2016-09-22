@@ -158,3 +158,15 @@ def plot_validation_grid_maps(ds, err_metrics, bbox):
         nplot = nplot + len(err_metrics) + 1
     
     return grid
+
+def qqplot(x,y):
+    
+    minx = np.min(np.concatenate([x,y]))
+    maxx = np.max(np.concatenate([x,y]))
+    z = np.linspace(minx, maxx, num=100)
+    
+    plt.plot(np.sort(x),np.sort(y),'.',color='k')
+    plt.plot(z,z,color='red')
+    plt.xlim((minx,maxx+1))
+    plt.ylim((minx,maxx+1))
+    
