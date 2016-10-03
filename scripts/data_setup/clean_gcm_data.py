@@ -14,7 +14,7 @@ import xarray as xr
 
 if __name__ == '__main__':
 
-    path_in_cmip5 = esd.cfg.path_cmip5_resample
+    path_in_cmip5 = os.path.join(esd.cfg.path_cmip5_resample, 'remapbic')
     path_out_cmip5 = esd.cfg.path_cmip5_cleaned
     paths_in = sorted(glob.glob(os.path.join(path_in_cmip5, '*')))
     paths_out = [os.path.join(path_out_cmip5,os.path.basename(apath)) for apath in paths_in]
