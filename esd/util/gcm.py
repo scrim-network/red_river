@@ -7,6 +7,8 @@ def unit_convert_pr(da):
     
     # Convert from kg m-2 s-1 to mm per day
     assert da.units == 'kg m-2 s-1'
+    # Check for possible invalid negative values from bicubic interpolation
+    da.values[da.values < 0] = 0
     da = da*86400
     da.attrs['units'] = 'mm day-1'
     return da
