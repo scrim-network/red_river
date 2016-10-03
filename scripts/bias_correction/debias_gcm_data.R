@@ -22,9 +22,9 @@ mask_incmplt <- !(basename(fpaths_in) %in% basename(fpaths_out_exist))
 fpaths_in <- fpaths_in[mask_incmplt]
 
 ds_obs_tair <- nc_open(file.path(cfg['path_aphrodite_resample'],
-                                 'aprhodite_redriver_sat_1961_2007_1deg.nc'))
+                                 'aprhodite_redriver_sat_1961_2007_1deg_6degbuf.nc'))
 ds_obs_prcp <- nc_open(file.path(cfg['path_aphrodite_resample'],
-                                 'aprhodite_redriver_pcp_1961_2007_1deg.nc'))
+                                 'aprhodite_redriver_pcp_1961_2007_1deg_6degbuf.nc'))
 
 a_obs_tair <-  ncvar_get(ds_obs_tair)
 a_obs_prcp <-  ncvar_get(ds_obs_prcp)
@@ -56,7 +56,7 @@ a_obs <- list('tas'=a_obs_tair, 'pr'=a_obs_prcp)
 
 fpath_log <- file.path(cfg['path_logs'], 'bias_correct.log')
 writeLines(c(""),fpath_log)
-cl <- makeCluster(19)
+cl <- makeCluster(3)
 registerDoParallel(cl)
 
 results <- foreach(fpath=fpaths_in) %dopar% {
@@ -79,13 +79,19 @@ results <- foreach(fpath=fpaths_in) %dopar% {
     
     for (c in 1:dim(a_debias)[2]) {
       
+      print(c(r,c))
+      
       mod_rc <- xts(a[r,c,],times_ptype)
       obs_rc <- xts(a_obs[[elem]][r,c,],times_obs)
-      merge_rc <- merge.xts(obs_rc, mod_rc)
-      xtsAttributes(merge_rc) <- list(modname=sprintf('%s_r%dc%d',basename(fpath),r,c))
-      a_debias[r,c,] <- mw_bias_correct(merge_rc[,1], merge_rc[,2], idx_train,
-                                        idx_fut, bias_func, win_masks, win_masks1)
       
+      # Only perform bias correct if observations are available for the grid cell
+      if (! all(is.na(obs_rc))) {
+        
+        merge_rc <- merge.xts(obs_rc, mod_rc)
+        xtsAttributes(merge_rc) <- list(modname=sprintf('%s_r%dc%d',basename(fpath),r,c))
+        a_debias[r,c,] <- mw_bias_correct(merge_rc[,1], merge_rc[,2], idx_train,
+                                          idx_fut, bias_func, win_masks, win_masks1)
+      }
     }
     
   }
