@@ -365,24 +365,6 @@ def buffer_cdo_lonlat_grid_cfg(fpath_cdo_grid_cfg, buf, new_inc=None):
         Buffer in degrees
     new_inc : float, optional
         New grid increment/resolution
-    tair_var : str
-        The temperature variable ('tmin' or 'tmax') of focus.
-    nnr_ds : twx.db.NNRNghData
-        A NNRNghData object for loading reanalysis data to help supplement
-        the neighboring station data.
-    tair_mask : ndarray, optional
-        A boolean mask specifying which observations at the target should
-        artificially be set to nan. This can be used for cross-validation.
-        Mask size must equal the time series length specified by the passed
-        StationDataDb.
-    day_mask : boolean, optional
-        If true and tair_mask is not None, days with actual missing observations will
-        be removed before station mean and variance estimation. Ignored if
-        tair_mask is None.
-    nnghs : int, optional
-        The minimum neighboring observations required for each day.
-    nnghs_nnr : int, optional
-        The number of neighboring NCEP/NCAR Reanalysis grid cells
         
     Returns
     ----------
