@@ -36,7 +36,8 @@ if __name__ == '__main__':
     mod_downscale_anoms = downscale_analog_anoms(ds_data, win_masks)
     
     tair_d = TairDownscale(fpath_tair_obs, fpath_tair_obsc, base_start_year,
-                           base_end_year, [(downscale_start_year,downscale_end_year)])
+                           base_end_year, base_start_year, base_end_year,
+                           [(downscale_start_year,downscale_end_year)])
     da_mod = xr.open_dataset(fpath_tair_mod)
     da_mod['time'] = _convert_times(da_mod)
     mod_downscale_vclim = tair_d.downscale(da_mod.SAT)
