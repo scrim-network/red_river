@@ -40,11 +40,20 @@ class RedRiverConfig():
         self.path_cmip5_debiased = os.path.join(self.data_root, 'cmip5_debiased')
         mkdir_p(self.path_cmip5_debiased)
         
+        self.path_cmip5_downscaled = os.path.join(self.data_root, 'cmip5_downscaled')
+        mkdir_p(self.path_cmip5_downscaled)
+        
         self.path_aphrodite_resample = os.path.join(self.data_root, 'aphrodite_resample')
         mkdir_p(self.path_aphrodite_resample)
         
         self.start_date_baseline = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'START_DATE_BASELINE'))
         self.end_date_baseline = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'END_DATE_BASELINE'))
+        
+        self.start_date_train_downscale = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'START_DATE_TRAIN_DOWNSCALE'))
+        self.end_date_train_downscale = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'END_DATE_TRAIN_DOWNSCALE'))
+        
+        self.start_date_downscale = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'START_DATE_DOWNSCALE'))
+        self.end_date_downscale = pd.Timestamp(cfg.get('REDRIVER_CONFIG', 'END_DATE_DOWNSCALE'))
         
         self.path_logs = os.path.join(self.data_root, 'logs')
         mkdir_p(self.path_logs)
