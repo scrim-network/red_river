@@ -98,3 +98,12 @@ def runs_of_ones_array(bits):
     run_starts, = np.where(difs > 0)
     run_ends, = np.where(difs < 0)
     return run_ends - run_starts
+
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
