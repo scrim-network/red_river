@@ -57,10 +57,15 @@ def line_rcp():
     anoms_tair = anoms_tair.replace('tair_mths12-1-2','Dec,Jan,Feb')
     anoms_tair = anoms_tair.replace('tair_mths4-5','Apr,May')
     anoms_tair = anoms_tair.replace('tair_mths6-7-8-9','Jun,Jul,Aug,Sep')
+    anoms_tair = anoms_tair.rename(columns={'anomaly (degC)':u"anomaly (\u00b0C)"})
     
     g = sns.FacetGrid(anoms_tair, col="time window", hue="rcp",col_wrap=2,sharey=True)
-    g = (g.map(plt.plot, "time", "anomaly (degC)"))
+    g = (g.map(plt.plot, "time", u"anomaly (\u00b0C)"))
     plt.legend(bbox_to_anchor=(1.75, 1))
+    fig =plt.gcf()
+    fig.set_size_inches(7,8) #w h
+    plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures','line_rcp_tair_anoms.png'), dpi=300, bbox_inches='tight')
     
     # Prcp
     anoms_prcp = anoms_prcp.rename(columns={'anomaly':'anomaly (fraction)','vname':'time window'})
@@ -70,12 +75,18 @@ def line_rcp():
     anoms_prcp = anoms_prcp.replace('prcp_mths4-5','Apr,May')
     anoms_prcp = anoms_prcp.replace('prcp_mths6-7-8-9','Jun,Jul,Aug,Sep')
     
-    g = sns.FacetGrid(anoms_prcp, col="time window", hue="rcp",col_wrap=2,sharey=False)
+    g = sns.FacetGrid(anoms_prcp, col="time window", hue="rcp",col_wrap=2,sharey=True)
     g = (g.map(plt.plot, "time", "anomaly (fraction)"))
     plt.legend(bbox_to_anchor=(1.75, 1))
     
     for ax in g.axes:
         ax.axhline(1,color='k',lw=.5)
+
+    fig =plt.gcf()
+    fig.set_size_inches(7,8) #w h
+    plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures','line_rcp_prcp_anoms.png'), dpi=300, bbox_inches='tight')
+        
     
 def line_gcm_cluster():
     
@@ -283,7 +294,7 @@ def heatmap_gcm_cluster():
         ax = plt.subplot(12,2,i)
         i+=1
         sns.heatmap(anoms_tair,vmin=0,vmax=5,xticklabels=True, yticklabels=True,
-                    annot=True,fmt='.1f',annot_kws={'fontsize':7})
+                    annot=False)#,fmt='.1f',annot_kws={'fontsize':7})
         plt.yticks(rotation=0)
         plt.xticks(rotation=90)
         plt.xlabel('')
@@ -295,7 +306,7 @@ def heatmap_gcm_cluster():
         i+=1
         
         sns.heatmap(anoms_prcp, cmap='RdBu', vmin=.6,vmax=1.4,xticklabels=True,
-                    yticklabels=True,annot=True,fmt='.2f',annot_kws={'fontsize':7})
+                    yticklabels=True)#,annot=False,fmt='.2f',annot_kws={'fontsize':7})
         plt.yticks(rotation=0)
         plt.xticks(rotation=90)
         plt.xlabel('')
@@ -304,6 +315,11 @@ def heatmap_gcm_cluster():
         
         if cname != 'cluster12':
             plt.gca().get_xaxis().set_ticks([])
+            
+    fig =plt.gcf()
+    fig.set_size_inches(9,12) #w h
+    #plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures','heatmap_cluster_anoms.png'), dpi=200, bbox_inches='tight')
 
 def bar_cluster_cnts():
     
@@ -324,4 +340,5 @@ if __name__ == '__main__':
     heatmap_gcm_cluster()
     
     line_rcp()
+
     heatmap_gcm_rcp()
