@@ -629,4 +629,75 @@ def to_anomalies(da_prcp, base_startend_yrs=None):
     
     da_prcp_anoms = da_prcp.groupby('time.month') / da_prcp_clim
 
-    return da_prcp_anoms
+    return da_prcp_anoms, da_prcp_clim
+
+def to_clim(da_prcp):
+    
+    da_mthly = da_prcp.resample('MS', dim='time', how='mean', skipna=False)
+    da_clim =  da_mthly.groupby('time.month').mean(dim='time')
+    return da_clim
+
+
+class PrcpDownscale():
+
+    def __init__(self, fpath_prcp_obs, fpath_prcp_obsc, base_start_year, base_end_year,
+                 train_start_year, train_end_year, downscale_start_year, downscale_end_year):
+        
+        self.da_obs = xr.open_dataset(fpath_prcp_obs).PCP
+        self.da_obsc = xr.open_dataset(fpath_prcp_obsc).PCP.load()    
+        self.da_obs = self.da_obs.loc[:, self.da_obsc.lat.values, self.da_obsc.lon.values].load()
+    
+        self.da_obs['time'] = _convert_times(self.da_obs)
+        self.da_obsc['time'] = _convert_times(self.da_obsc)
+
+        self.da_obs_anoms,self.da_obs_clim = to_anomalies(self.da_obs, (base_start_year, base_end_year))
+        self.da_obsc_anoms = to_anomalies(self.da_obsc, (base_start_year,base_end_year))[0]
+            
+        self.da_obsc_anoms = self.da_obsc_anoms.loc[train_start_year:train_end_year]
+        self.da_obsc = self.da_obsc.loc[train_start_year:train_end_year]
+        
+        self.win_masks91 = _window_masks(self.da_obsc_anoms.time.to_pandas().index, winsize=91)
+        
+        self.base_start_year = base_start_year
+        self.base_end_year = base_end_year
+        self.train_start_year = base_start_year
+        self.train_end_year = base_end_year
+        self.downscale_start_year = downscale_start_year
+        self.downscale_end_year = downscale_end_year
+        
+    def downscale(self, da_mod):
+        
+        da_mod_clim = to_clim(da_mod.loc[self.base_start_year:self.base_end_year])
+        da_mod_anoms = da_mod.groupby('time.month') / da_mod_clim
+        da_mod_anoms = da_mod_anoms.loc[self.downscale_start_year:self.downscale_end_year]
+        da_obsc_anoms = self.da_obsc_anoms
+        da_obs_anoms = self.da_obs_anoms
+        da_obs_clim = self.da_obs_clim
+        
+        # DataArray to store downscaled results
+        da_mod_anoms_d = da_mod_anoms.copy()
+        
+        for a_date in da_mod_anoms.time.to_pandas().index:
+            
+            #print a_date
+            
+            vals_mod = da_mod_anoms.loc[a_date]
+            analog_pool = da_obsc_anoms[self.win_masks91.loc[a_date.strftime('%m-%d')].values]
+            
+            rmse_analogs = np.sqrt((np.square(vals_mod - analog_pool)).mean(dim=('lon', 'lat')))
+            vals_analog = analog_pool[int(rmse_analogs.argmin())]
+            
+            s = vals_mod - vals_analog
+            vals_obs_anoms = da_obs_anoms.loc[vals_analog.time.values]
+            vals_d = vals_obs_anoms.copy()
+            mask_wet = vals_d.values > 0        
+            vals_d.values[mask_wet] = vals_d.values[mask_wet] + s.values[mask_wet]
+            
+            mask_wet_invalid = np.logical_and(mask_wet, vals_d.values <= 0)        
+            vals_d.values[mask_wet_invalid] = vals_obs_anoms.values[mask_wet_invalid]
+                       
+            da_mod_anoms_d.loc[a_date] = vals_d.values
+        
+        da_mod_d = da_mod_anoms_d.groupby('time.month') * da_obs_clim
+                
+        return da_mod_d
