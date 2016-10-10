@@ -152,7 +152,7 @@ def _downscale_anoms(da_obs, da_obsc, da_mod, win_masks, n_analog=1):
     
     for a_date in da_mod.time.to_pandas().index:
         
-        print a_date
+        #print a_date
         vals_mod = da_mod.loc[a_date]
         analog_pool = da_obsc[win_masks.loc[a_date.strftime('%m-%d')].values]        
         rmse_analogs = np.sqrt((np.square(vals_mod - analog_pool)).mean(dim=('lon', 'lat')))
@@ -170,7 +170,7 @@ def _downscale_anoms(da_obs, da_obsc, da_mod, win_masks, n_analog=1):
 class TairDownscale():
 
     def __init__(self, fpath_tair_obs, fpath_tair_obsc, base_start_year,
-                 base_end_year, downscale_wins):
+                 base_end_year, train_start_year, train_end_year, downscale_wins):
         
         self.da_obs = xr.open_dataset(fpath_tair_obs).SAT
         self.da_obsc = xr.open_dataset(fpath_tair_obsc).SAT.load()    
@@ -182,14 +182,16 @@ class TairDownscale():
         self.da_obs_anoms,self.da_obs_clim = to_anomalies(self.da_obs, (base_start_year, base_end_year))
         self.da_obsc_anoms = to_anomalies(self.da_obsc, (base_start_year,base_end_year))[0]
             
-        self.da_obsc_anoms = self.da_obsc_anoms.loc[base_start_year:base_end_year]
-        self.da_obsc = self.da_obsc.loc[base_start_year:base_end_year]
+        self.da_obsc_anoms = self.da_obsc_anoms.loc[train_start_year:train_end_year]
+        self.da_obsc = self.da_obsc.loc[train_start_year:train_end_year]
         
         self.win_masks91 = _window_masks(self.da_obsc_anoms.time.to_pandas().index, winsize=91)
         self.win_masks121 = _window_masks(self.da_obsc_anoms.time.to_pandas().index, winsize=121)
         
         self.base_start_year = base_start_year
         self.base_end_year = base_end_year
+        self.train_start_year = train_start_year
+        self.train_end_year = train_end_year
         self.downscale_wins = downscale_wins
         
     def downscale(self, da_mod):
@@ -221,7 +223,7 @@ class TairDownscale():
                 clim_dif = clim_dif.rename({'month':'time'})
                 clim_dif['time'] = clim_time
                 
-                clim_dif_d = _downscale_anoms(self.da_obsc_anoms, self.da_obsc_anoms,
+                clim_dif_d = _downscale_anoms(self.da_obs_anoms, self.da_obsc_anoms,
                                               clim_dif, self.win_masks121, n_analog=30)
                 clim_dif_d = clim_dif_d.rename({'time':'month'})
                 clim_dif_d['month'] = clim_dif_d['month.month'].values
