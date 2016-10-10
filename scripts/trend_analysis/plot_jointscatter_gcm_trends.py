@@ -11,10 +11,7 @@ import pandas as pd
 import seaborn as sns
 
 def plot_season_trends(season, time_period):
-    
-    season = 'JJAS' #'ANNUAL' 'JJAS'
-    time_period = '2006_2050'#'2006_2099' '2006_2050'
-    
+        
     pr_trends = df_trends.query("elem=='pr' & season=='%s' & time_period=='%s'"%(season,time_period))
     tas_trends = df_trends.query("elem=='tas' & season=='%s' & time_period=='%s'"%(season,time_period))
     
@@ -62,8 +59,40 @@ if __name__ == '__main__':
         
     df_trends = pd.read_csv(os.path.join(esd.cfg.path_cmip5_trends, 'red_river_trends.csv'))
 
+    #sns.set_context('talk')
+    plt.clf()
     season = 'JJAS' #'ANNUAL' 'JJAS'
     time_period = '2006_2050'#'2006_2099' '2006_2050'
-    
     plot_season_trends(season, time_period)
+    plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
+                             'scatter_trends_%s_%s.png'%(season,time_period)),
+                dpi=300, bbox_inches='tight')
+
+    plt.clf()
+    season = 'JJAS' #'ANNUAL' 'JJAS'
+    time_period = '2006_2099'#'2006_2099' '2006_2050'
+    plot_season_trends(season, time_period)
+    plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
+                             'scatter_trends_%s_%s.png'%(season,time_period)),
+                dpi=300, bbox_inches='tight')
+    
+    plt.clf()
+    season = 'ANNUAL' #'ANNUAL' 'JJAS'
+    time_period = '2006_2050'#'2006_2099' '2006_2050'
+    plot_season_trends(season, time_period)
+    plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
+                             'scatter_trends_%s_%s.png'%(season,time_period)),
+                dpi=300, bbox_inches='tight')
+
+    plt.clf()
+    season = 'ANNUAL' #'ANNUAL' 'JJAS'
+    time_period = '2006_2099'#'2006_2099' '2006_2050'
+    plot_season_trends(season, time_period)
+    plt.tight_layout()
+    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
+                             'scatter_trends_%s_%s.png'%(season,time_period)),
+                dpi=300, bbox_inches='tight')
         
