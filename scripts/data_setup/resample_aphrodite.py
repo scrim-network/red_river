@@ -2,10 +2,13 @@
 Script to resample APHRODITE grids with cdo.
 '''
 
-import os
-import esd
-import subprocess
 from esd.util import buffer_cdo_lonlat_grid_cfg
+import esd
+import numpy as np
+import os
+import pandas as pd
+import subprocess
+import xarray as xr
 
 if __name__ == '__main__':
     
@@ -60,9 +63,32 @@ if __name__ == '__main__':
     # Created a version of Aphrodite cropped to the Red River 
     ############################################################################
     fpath_cdo_grid_def = os.path.join(esd.cfg.path_data_bbox, 'cdo_grid_p25deg_red_river')
+    
+    fpath_crp_prcp = os.path.join(esd.cfg.path_aphrodite_resample,
+                                  'aprhodite_redriver_pcp_1961_2007_p25deg.nc')
+    fpath_crp_tair = os.path.join(esd.cfg.path_aphrodite_resample,
+                                  'aprhodite_redriver_sat_1961_2007_p25deg.nc')
     cmd_prcp = "cdo remapnn,%s %s %s"%(fpath_cdo_grid_def, esd.cfg.fpath_aphrodite_prcp,
-                                       os.path.join(esd.cfg.path_aphrodite_resample,
-                                                    'aprhodite_redriver_pcp_1961_2007_p25deg.nc'))
+                                       fpath_crp_prcp)
     cmd_tair = "cdo remapnn,%s %s %s"%(fpath_cdo_grid_def, esd.cfg.fpath_aphrodite_tair,
-                                       os.path.join(esd.cfg.path_aphrodite_resample,
-                                                    'aprhodite_redriver_sat_1961_2007_p25deg.nc'))
+                                       fpath_crp_tair)
+
+    # Modify time coordinate variable
+
+    def convert_times(ds):
+    
+        times = pd.to_datetime(ds.time.to_pandas().astype(np.str),
+                               format='%Y%m%d', errors='coerce')        
+        return times.values
+
+    ds_prcp = xr.open_dataset(fpath_crp_prcp).load()
+    ds_prcp['time'] = convert_times(ds_prcp)
+    ds_prcp.close()
+    ds_prcp.to_netcdf(fpath_crp_prcp)
+    
+    ds_tair = xr.open_dataset(fpath_crp_tair).load()
+    ds_tair['time'] = convert_times(ds_tair)
+    ds_tair.close()
+    ds_tair.to_netcdf(fpath_crp_tair)
+    
+    
