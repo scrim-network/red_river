@@ -184,6 +184,11 @@ def proc_write(nwrkers):
         else:
             path_out = os.path.join(esd.cfg.path_cmip5_downscaled, subdir)
             mkdir_p(path_out)
+            
+            fname_splt = fname.split('.')
+            fname_splt.insert(5, 'red_river_downscaled_0p25deg')
+            fname = ".".join(fname_splt)
+            
             fpath_out = os.path.join(path_out, fname)
             print "WRITER: Writing %s..."%fpath_out
             ds_out.to_netcdf(fpath_out)
