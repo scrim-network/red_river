@@ -32,8 +32,34 @@ include:
   the 31-day moving window bias correction using those from the bias correction
   without a moving window.
 
-Details of the Red River variation of EDCDFm in a `project pdf`_.
+Details of the Red River variation of EDCDFm are provided in a `project pdf. <https://github.com/scrim-network/red_river/blob/master/docs/bias_correction_methods.pdf>`_
+
+=======================
+Downscaling Methods
+=======================
+
+We use a variation of the constructed analogs method described by (`Pierce et al. 2014`_)
+to downscale CMIP5 projections for the Red River, Vietnam. Our modified method is
+termed **Constructed Analogs with Single Anomaly Analog (CASAA)**. Key differences
+from (`Pierce et al. 2014`_) include:
+
+* We use anomalies for downscaling both temperature and precipitation. In contrast,
+  (`Pierce et al. 2014`_) use anomalies for downscaling temperature and absolute
+  values for downscaling precipitation. We found that anomalies provided better
+  performance when downscaling precipitation and helped to avoid instability
+  issues with the scaling factor described in section *3.b.4* and *Appendix d* of
+  (`Pierce et al. 2014`_). Because we use anomalies, our precipitation scaling
+  factor is additive instead of multiplicative. For a specific chosen analog,
+  we preserve the high-resolution wet-dry spatial pattern. Unlike (`Pierce et al. 2014`),
+  we make sure the applied scaling factor (*section 3.b.4* and *Appendix d*) does
+  not change any high-resolution grid cells from wet to dry in the high-resolution
+  analog.
+* We do not use the localized analog selection procedure of (`Pierce et al. 2014`).
+  We select a best match analog for a specific day using the entire Red River
+  spatial domain. 
+
+Details of the Red River CASAA method are provided in a `project pdf. <https://github.com/scrim-network/red_river/blob/master/docs/downscaling_methods.pdf>`_
 
 .. _Pierce et al. 2015: http://dx.doi.org/10.1175/JHM-D-14-0236.1
 .. _Li et al. 2010: http://dx.doi.org/10.1029/2009JD012882
-.. _project pdf: https://github.com/scrim-network/red_river/blob/master/docs/bias_correction_methods.pdf
+.. _Pierce et al. 2014: http://dx.doi.org/10.1175/JHM-D-14-0082.1
