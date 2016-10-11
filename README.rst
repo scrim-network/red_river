@@ -50,11 +50,11 @@ from (`Pierce et al. 2014`_) include:
   issues with the scaling factor described in section *3.b.4* and *Appendix d* of
   (`Pierce et al. 2014`_). Because we use anomalies, our precipitation scaling
   factor is additive instead of multiplicative. For a specific chosen analog,
-  we preserve the high-resolution wet-dry spatial pattern. Unlike (`Pierce et al. 2014`),
+  we preserve the high-resolution wet-dry spatial pattern. Unlike (`Pierce et al. 2014`_),
   we make sure the applied scaling factor (*section 3.b.4* and *Appendix d*) does
   not change any high-resolution grid cells from wet to dry in the high-resolution
   analog.
-* We do not use the localized analog selection procedure of (`Pierce et al. 2014`).
+* We do not use the localized analog selection procedure of (`Pierce et al. 2014`_).
   We select a best match analog for a specific day using the entire Red River
   spatial domain. 
 
