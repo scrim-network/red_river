@@ -36,3 +36,4 @@ Details of the Red River variation of EDCDFm in a `project pdf`_.
 
 .. _Pierce et al. 2015: http://dx.doi.org/10.1175/JHM-D-14-0236.1
 .. _Li et al. 2010: http://dx.doi.org/10.1029/2009JD012882
+.. _project pdf: https://github.com/scrim-network/red_river/blob/master/docs/bias_correction_methods.pdf
