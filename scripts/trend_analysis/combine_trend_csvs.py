@@ -23,8 +23,12 @@ def fname_to_season(fname):
     return season_name
         
 if __name__ == '__main__':
-        
-    path_trends = esd.cfg.path_cmip5_trends
+    
+    # Trends for CMIP5 realizations have NOT been biased corrected and downscaled
+    # path_trends = esd.cfg.path_cmip5_trends
+    
+    # Trends for CMIP5 realizations have been biased corrected and downscaled
+    path_trends = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
     
     fpaths = sorted(glob.glob(os.path.join(path_trends, 'pr_*.csv')))
     fpaths.extend(sorted(glob.glob(os.path.join(path_trends, 'tas_*.csv'))))

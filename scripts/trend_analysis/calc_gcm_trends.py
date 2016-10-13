@@ -3,7 +3,6 @@ Script to calculate aggregate annual and seasonal trends for CMIP5 GCM projectio
 in the Red River basin.
 '''
 
-from esd.util import clean_gcm_da, unit_convert_pr, unit_convert_tas
 import esd
 import glob
 import numpy as np
@@ -82,7 +81,6 @@ def output_ann_trends(path_cmip5, fname_pattern, vname, unit_convert_func,
         print run_name
         
         da = xr.open_dataset(fpath).load()[vname]
-        da = clean_gcm_da(da, unit_convert_func)
             
         mthly = da.resample('1MS', dim='time', how=resample_func)
         ann = mthly.resample('AS', dim='time', how=resample_func)
@@ -121,7 +119,6 @@ def output_season_trends(path_cmip5, fname_pattern, season_mths, vname,
         print run_name
         
         da = xr.open_dataset(fpath).load()[vname]
-        da = clean_gcm_da(da, unit_convert_func)
             
         mthly = da.resample('1MS', dim='time', how=resample_func)
 
@@ -163,11 +160,16 @@ def output_season_trends(path_cmip5, fname_pattern, season_mths, vname,
 
 if __name__ == '__main__':
     
-    path_cmip5 = esd.cfg.path_cmip5_resample
-    path_out = esd.cfg.path_cmip5_trends
+    # Trends for CMIP5 realizations have NOT been biased corrected and downscaled
+#     path_cmip5 = esd.cfg.path_cmip5_cleaned
+#     path_out = esd.cfg.path_cmip5_trends
+    
+    # Trends for CMIP5 realizations have been biased corrected and downscaled
+    path_cmip5 = esd.cfg.path_cmip5_downscaled
+    path_out = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
+    
     start_base = esd.cfg.start_date_baseline.strftime('%Y-%m-%d')
     end_base = esd.cfg.end_date_baseline.strftime('%Y-%m-%d')
-    
     trend_periods = [('2006','2050'), ('2006','2099')]
     
     # Prcp ann
@@ -177,7 +179,7 @@ if __name__ == '__main__':
         output_ann_trends(path_cmip5,
                           fname_pattern='pr.day*.nc',
                           vname='pr',
-                          unit_convert_func=unit_convert_pr,
+                          unit_convert_func=None,
                           resample_func='sum',
                           trend_func=lambda x: x*100*10, #% per decade,
                           anom_func= lambda mthly_grp,norms: mthly_grp / norms,
@@ -201,7 +203,7 @@ if __name__ == '__main__':
                                  fname_pattern='pr.day*.nc',
                                  season_mths=season,
                                  vname='pr',
-                                 unit_convert_func=unit_convert_pr,
+                                 unit_convert_func=None,
                                  resample_func='sum',
                                  anom_func=lambda mthly_grp,norms: mthly_grp / norms,
                                  trend_func=lambda x: x*100*10, #% per decade
@@ -217,7 +219,7 @@ if __name__ == '__main__':
         output_ann_trends(path_cmip5,
                           fname_pattern='tas.day*.nc',
                           vname='tas',
-                          unit_convert_func=unit_convert_tas,
+                          unit_convert_func=None,
                           resample_func='mean',
                           trend_func=lambda x: x*10, #degC per decade,
                           anom_func= lambda mthly_grp,norms: mthly_grp - norms,
@@ -241,7 +243,7 @@ if __name__ == '__main__':
                                  fname_pattern='tas.day*.nc',
                                  season_mths=season,
                                  vname='tas',
-                                 unit_convert_func=unit_convert_tas,
+                                 unit_convert_func=None,
                                  resample_func='mean',
                                  anom_func=lambda mthly_grp,norms: mthly_grp - norms,
                                  trend_func=lambda x: x*10, #degC per decade,

@@ -11,17 +11,6 @@ import matplotlib.pyplot as plt
 import esd
 import os
 
-anom_fpaths = [(os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_ann.csv'),'tair_ann'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths10-11.csv'),'tair_mths10-11'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths12-1-2.csv'),'tair_mths12-1-2'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths4-5.csv'),'tair_mths4-5'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_tas_2006_2099_mths6-7-8-9.csv'),'tair_mths6-7-8-9'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_ann.csv'),'prcp_ann'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths10-11.csv'),'prcp_mths10-11'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths12-1-2.csv'),'prcp_mths12-1-2'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths4-5.csv'),'prcp_mths4-5'),
-               (os.path.join(esd.cfg.path_cmip5_trends,'anoms_pr_2006_2099_mths6-7-8-9.csv'),'prcp_mths6-7-8-9')]
-
 def line_rcp():
         
     anoms_all = []
@@ -85,9 +74,8 @@ def line_rcp():
     fig =plt.gcf()
     fig.set_size_inches(7,8) #w h
     plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures','line_rcp_prcp_anoms.png'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(path_out_figs,'line_rcp_prcp_anoms.png'), dpi=300, bbox_inches='tight')
         
-    
 def line_gcm_cluster():
     
     clusters = pd.read_csv(os.path.join(esd.cfg.path_cmip5_trends, 'cluster_nums.csv'))
@@ -319,7 +307,7 @@ def heatmap_gcm_cluster():
     fig =plt.gcf()
     fig.set_size_inches(9,12) #w h
     #plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures','heatmap_cluster_anoms.png'), dpi=200, bbox_inches='tight')
+    plt.savefig(os.path.join(path_out_figs,'heatmap_cluster_anoms.png'), dpi=200, bbox_inches='tight')
 
 def bar_cluster_cnts():
     
@@ -335,10 +323,33 @@ def bar_cluster_cnts():
         
 if __name__ == '__main__':
     
-    bar_cluster_cnts()
-    line_gcm_cluster()
-    heatmap_gcm_cluster()
+    # Trends for CMIP5 realizations have NOT been biased corrected and downscaled
+#     path_trends = esd.cfg.path_cmip5_trends
+#     path_out_figs = os.path.join(esd.cfg.path_cmip5_trends,'figures')
+    
+    # Trends for CMIP5 realizations have been biased corrected and downscaled
+    path_trends = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
+    path_out_figs = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled', 'figures')
+    
+    anom_fpaths = [(os.path.join(path_trends,'anoms_tas_2006_2099_ann.csv'),'tair_ann'),
+                   (os.path.join(path_trends,'anoms_tas_2006_2099_mths10-11.csv'),'tair_mths10-11'),
+                   (os.path.join(path_trends,'anoms_tas_2006_2099_mths12-1-2.csv'),'tair_mths12-1-2'),
+                   (os.path.join(path_trends,'anoms_tas_2006_2099_mths4-5.csv'),'tair_mths4-5'),
+                   (os.path.join(path_trends,'anoms_tas_2006_2099_mths6-7-8-9.csv'),'tair_mths6-7-8-9'),
+                   (os.path.join(path_trends,'anoms_pr_2006_2099_ann.csv'),'prcp_ann'),
+                   (os.path.join(path_trends,'anoms_pr_2006_2099_mths10-11.csv'),'prcp_mths10-11'),
+                   (os.path.join(path_trends,'anoms_pr_2006_2099_mths12-1-2.csv'),'prcp_mths12-1-2'),
+                   (os.path.join(path_trends,'anoms_pr_2006_2099_mths4-5.csv'),'prcp_mths4-5'),
+                   (os.path.join(path_trends,'anoms_pr_2006_2099_mths6-7-8-9.csv'),'prcp_mths6-7-8-9')]
     
     line_rcp()
 
-    heatmap_gcm_rcp()
+    
+    
+#     bar_cluster_cnts()
+#     line_gcm_cluster()
+#     heatmap_gcm_cluster()
+#     
+#     line_rcp()
+# 
+#     heatmap_gcm_rcp()

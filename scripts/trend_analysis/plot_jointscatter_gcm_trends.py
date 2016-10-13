@@ -56,8 +56,16 @@ def plot_season_trends(season, time_period):
     plt.vlines(0, g.ax_joint.get_ylim()[0], g.ax_joint.get_ylim()[1],lw=.5)
 
 if __name__ == '__main__':
-        
-    df_trends = pd.read_csv(os.path.join(esd.cfg.path_cmip5_trends, 'red_river_trends.csv'))
+    
+    # Trends for CMIP5 realizations have NOT been biased corrected and downscaled
+#     fpath_trend_csv = os.path.join(esd.cfg.path_cmip5_trends, 'red_river_trends.csv')
+#     path_out_figs = os.path.join(esd.cfg.path_cmip5_trends, 'figures')
+    
+    # Trends for CMIP5 realizations have been biased corrected and downscaled
+    fpath_trend_csv = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled', 'red_river_trends.csv')
+    path_out_figs = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled', 'figures')
+    
+    df_trends = pd.read_csv(fpath_trend_csv)
 
     #sns.set_context('talk')
     plt.clf()
@@ -65,8 +73,7 @@ if __name__ == '__main__':
     time_period = '2006_2050'#'2006_2099' '2006_2050'
     plot_season_trends(season, time_period)
     plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
-                             'scatter_trends_%s_%s.png'%(season,time_period)),
+    plt.savefig(os.path.join(path_out_figs, 'scatter_trends_%s_%s.png'%(season,time_period)),
                 dpi=300, bbox_inches='tight')
 
     plt.clf()
@@ -74,8 +81,7 @@ if __name__ == '__main__':
     time_period = '2006_2099'#'2006_2099' '2006_2050'
     plot_season_trends(season, time_period)
     plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
-                             'scatter_trends_%s_%s.png'%(season,time_period)),
+    plt.savefig(os.path.join(path_out_figs, 'scatter_trends_%s_%s.png'%(season,time_period)),
                 dpi=300, bbox_inches='tight')
     
     plt.clf()
@@ -83,8 +89,7 @@ if __name__ == '__main__':
     time_period = '2006_2050'#'2006_2099' '2006_2050'
     plot_season_trends(season, time_period)
     plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
-                             'scatter_trends_%s_%s.png'%(season,time_period)),
+    plt.savefig(os.path.join(path_out_figs, 'scatter_trends_%s_%s.png'%(season,time_period)),
                 dpi=300, bbox_inches='tight')
 
     plt.clf()
@@ -92,7 +97,6 @@ if __name__ == '__main__':
     time_period = '2006_2099'#'2006_2099' '2006_2050'
     plot_season_trends(season, time_period)
     plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures',
-                             'scatter_trends_%s_%s.png'%(season,time_period)),
+    plt.savefig(os.path.join(path_out_figs, 'scatter_trends_%s_%s.png'%(season,time_period)),
                 dpi=300, bbox_inches='tight')
         
