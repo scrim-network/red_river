@@ -13,7 +13,29 @@ import xarray as xr
 
 if __name__ == '__main__':
     
-    path_in_cmip5 = esd.cfg.path_cmip5_cleaned
+    # Historical annual cycles for aphrodite 1deg and CMIP5 realizations that
+    # have NOT been biased corrected and downscaled
+#     path_in_cmip5 = esd.cfg.path_cmip5_cleaned
+#     fpath_aphrodite_tair = os.path.join(esd.cfg.path_aphrodite_resample,
+#                                         'aprhodite_redriver_sat_1961_2007_1deg.nc')
+#     fpath_aphrodite_prcp = os.path.join(esd.cfg.path_aphrodite_resample,
+#                                         'aprhodite_redriver_pcp_1961_2007_1deg.nc')
+#     fpath_out_tair = os.path.join(esd.cfg.path_cmip5_trends, 'hist_ann_cycle_tair.csv')
+#     fpath_out_prcp = os.path.join(esd.cfg.path_cmip5_trends, 'hist_ann_cycle_prcp.csv')
+    
+    # Historical annual cycles for original aphrodite .25deg and CMIP5 realizations that
+    # have been biased corrected and downscaled
+    path_in_cmip5 = esd.cfg.path_cmip5_downscaled
+    fpath_aphrodite_tair = os.path.join(esd.cfg.path_aphrodite_resample,
+                                        'aprhodite_redriver_sat_1961_2007_p25deg.nc')
+    fpath_aphrodite_prcp = os.path.join(esd.cfg.path_aphrodite_resample,
+                                        'aprhodite_redriver_pcp_1961_2007_p25deg.nc')
+    fpath_out_tair = os.path.join(esd.cfg.path_cmip5_trends, 'hist_ann_cycle_tair_p25deg.csv')
+    fpath_out_prcp = os.path.join(esd.cfg.path_cmip5_trends, 'hist_ann_cycle_prcp_p25deg.csv')
+    
+    
+    ############################################################################
+    
     paths_in = sorted(glob.glob(os.path.join(path_in_cmip5, '*')))
         
     fpaths_tas = sorted(list(itertools.chain.
@@ -85,21 +107,18 @@ if __name__ == '__main__':
     
     norms_prcp = [mth_prcp_norms(fpath) for fpath in fpaths_pr]
     norms_prcp = pd.concat(norms_prcp, axis=1)
-    
-    fpath_aphrodite_tair = os.path.join(esd.cfg.path_aphrodite_resample,
-                                        'aprhodite_redriver_sat_1961_2007_1deg.nc')
-    fpath_aphrodite_prcp = os.path.join(esd.cfg.path_aphrodite_resample,
-                                        'aprhodite_redriver_pcp_1961_2007_1deg.nc')
-    
+        
     ds_tair = xr.open_dataset(fpath_aphrodite_tair)
     ds_prcp = xr.open_dataset(fpath_aphrodite_prcp)
     
     def convert_times(ds):
-    
-        # Convert times to datetime format
-        times = pd.to_datetime(ds.time.to_pandas().astype(np.str),
-                               format='%Y%m%d.0', errors='coerce')        
-        ds['time'] = times.values
+        
+        if ds.time.values.dtype.name != 'datetime64[ns]':
+            # Convert times to datetime format
+            times = pd.to_datetime(ds.time.to_pandas().astype(np.str),
+                                   format='%Y%m%d.0', errors='coerce')        
+            ds['time'] = times.values
+            
         return ds
     
     ds_tair = convert_times(ds_tair)
@@ -111,5 +130,5 @@ if __name__ == '__main__':
     norms_prcp = pd.concat([norms_prcp, aphro_norms_prcp],axis=1)
     norms_tair = pd.concat([norms_tair, aphro_norms_tair],axis=1)
     
-    norms_prcp.to_csv(os.path.join(esd.cfg.path_cmip5_trends, 'hist_ann_cycle_prcp.csv'))
-    norms_tair.to_csv(os.path.join(esd.cfg.path_cmip5_trends, 'hist_ann_cycle_tair.csv'))
+    norms_prcp.to_csv(fpath_out_prcp)
+    norms_tair.to_csv(fpath_out_tair)
