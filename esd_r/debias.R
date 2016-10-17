@@ -179,65 +179,6 @@ edqmap <- function(obs, pred_train, pred_fut, pred_fut_subset, delta_type='add')
   
 }
 
-edqmap_prcp <- function(obs, pred_train, pred_fut, pred_fut_subset) {
-  
-  wetday_t <- wetday_threshold(obs, pred_train)
-  pred_train0 <- pred_train
-  pred_fut0 <- pred_fut
-  pred_fut_subset0 <- pred_fut_subset
-  
-  pred_train0[pred_train0 <= wetday_t] = 0
-  pred_fut0[pred_fut0 <= wetday_t] = 0
-  pred_fut_subset0[pred_fut_subset0 <= wetday_t] = 0
-  
-  obs_wet <- obs[obs > 0]
-  pred_train_wet  <- pred_train0[pred_train0 > 0]
-  pred_fut_wet  <- pred_fut0[pred_fut0 > 0]
-  pred_fut_subset_wet  <- pred_fut_subset0[pred_fut_subset0 > 0]
-  
-  if (length(obs_wet) <= 1 | length(pred_train_wet) <= 1 | length(pred_fut_wet) <= 1) {
-    pred_fut_adj_wet <-  pred_fut_wet
-    print(sprintf("Error: Not enough wet days to bias correct %s. Will not bias correct.",
-                  as.character(attributes(pred_train)$modname)))
-  } else {
-    pred_fut_adj_wet <- edqmap(obs_wet, pred_train_wet, pred_fut_wet,
-                                pred_fut_wet, delta_type='ratio')
-  }
-  
-  pred_fut_adj <- pred_fut0
-  pred_fut_adj[pred_fut_adj > 0] = as.numeric(pred_fut_adj_wet)
-  
-  # Change Factor Correction
-  x <- mean(pred_fut0)/mean(pred_train0)
-  
-  # Bias correct base training period
-  if (length(obs_wet) <= 1 | length(pred_train_wet) <= 1) {
-    pred_train_adj_wet <- pred_train_wet
-    print(sprintf("Error: Not enough wet days in training period to bias correct %s. Will not bias correct.",
-                  as.character(attributes(pred_train)$modname)))
-    
-  } else {
-    pred_train_adj_wet <- edqmap(obs_wet, pred_train_wet, pred_train_wet,
-                                 pred_train_wet, delta_type='ratio')
-  }
-    
-  pred_train_adj <- pred_train0
-  pred_train_adj[pred_train_adj > 0] = as.numeric(pred_train_adj_wet)
-  
-  xhat <- mean(mean(pred_fut_adj)/mean(pred_train_adj))
-  
-  k <- x/xhat
-    
-  if (is.na(k)) {
-    print(sprintf("Error: K change correction factor is NA for %s. Will not be applied.",
-            as.character(attributes(pred_train)$modname)))
-  } else {
-    pred_fut_adj <- pred_fut_adj*k
-  }
-  
-  return(pred_fut_adj[index(pred_fut_subset)])
-}
-
 wetday_bias <- function(obs, pred_train, pred_fut, pred_fut_subset) {
   
   nwet_obs <- sum(obs > 0)
