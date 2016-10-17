@@ -141,15 +141,23 @@ edqmap <- function(obs, pred_train, pred_fut, pred_fut_subset, delta_type='add')
   
   if (delta_type == 'add') {
     delta <- pred_fut_subset-mapped_train
-  } 
-  else if (delta_type == 'ratio') {
+  } else if (delta_type == 'ratio') {
     delta <- pred_fut_subset/mapped_train
     
     # If mapped_train is 0, delta will be Inf or NA. Set these to 1
     delta[is.infinite(delta) | is.na(delta)] = 1
     
     #TODO: Check for extremely large deltas?
-       
+#    if (length(unique(delta)) > 1)
+#    {
+#      # Limit delta by 6 standard deviations to avoid extremely inflated deltas
+#      zdelta <- scale(delta)
+#      max_delta <- max(delta[zdelta <= 6])
+#      min_delta <- min(delta[zdelta >= -6])
+#      delta[zdelta > 6] = max_delta
+#      delta[zdelta < -6] = min_delta
+#    }
+         
   }
   
   ##############################################################################
@@ -161,8 +169,7 @@ edqmap <- function(obs, pred_train, pred_fut, pred_fut_subset, delta_type='add')
   
   if (delta_type == 'add') {
     pred_fut_adj <- mapped_obs + delta
-  } 
-  else if (delta_type == 'ratio') {
+  } else if (delta_type == 'ratio') {
     pred_fut_adj <- mapped_obs * delta
   }
   
@@ -273,3 +280,144 @@ wetday_threshold <- function(obs, mod) {
   return(thres)
   
 }
+
+.check_prcp_kmean <- function(kmean, modname) {
+  
+  if (is.na(kmean) | is.infinite(kmean)) { kmean <- 1 }
+  
+}
+
+edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
+  
+  # Calculate wet day threshold for bias correcting the model's # of wet days
+  wetday_t <- wetday_threshold(obs, mod_train)
+  # Create new model training and future time series setting all prcp values
+  # <= to the wet day threshold to 0
+  mod_train0 <- mod_train
+  mod_fut0 <- mod_fut
+  mod_train0[mod_train0 <= wetday_t] = 0
+  mod_fut0[mod_fut0 <= wetday_t] = 0
+  
+  # Calculate mean of observation and model time series over training time period
+  # and mean of model time series over future period
+  mean_obs <- mean(obs)
+  mean_mod_train0 <- mean(mod_train0)
+  mean_mod_fut0 <- mean(mod_fut0)
+  # Calculate ratio of observation mean to model mean.
+  mean_bc_delta0 <- mean_obs/mean_mod_train0
+    
+  # Subset anomly time series to only wet values. Will only apply EDCDFm to wet
+  # day values
+  obs_wet <- obs[obs > 0]
+  mod_train0_wet <- mod_train0[mod_train0 > 0]
+  mod_fut0_wet <- mod_fut0[mod_fut0 > 0]
+  
+  # Calculate mean of observation and model time series over training time period
+  # and mean of model time series over future period for just wet days
+  mean_obs_wet <- mean(obs_wet)
+  mean_mod_train0_wet <- mean(mod_train0_wet)
+  mean_mod_fut0_wet <- mean(mod_fut0_wet)
+  # Calculate ratio of observation mean to model mean for wet days.
+  mean_bc_delta_wet <- mean_obs_wet/mean_mod_train0_wet
+  
+  # Convert all wet day time series to ratio anomalies based on their mean wet value
+  anom_obs_wet <- obs_wet/mean_obs_wet
+  anom_mod_train0_wet <- mod_train0_wet/mean_mod_train0_wet
+  anom_mod_fut0_wet <- mod_fut0_wet/mean_mod_fut0_wet
+  
+  # Only apply EDCDFm if there are enough wet days in the time series
+  no_wet <- (length(anom_obs_wet) <= 1 |
+             length(anom_mod_train0_wet) <= 1 |
+             length(anom_mod_fut0_wet) <= 1)
+  
+  if (no_wet) {
+    
+    # Not enough wet days to run EDCDFm. Simply set adjusted future wet time series
+    # to the original anomaly values
+    anom_mod_fut_adj_wet <-  anom_mod_fut0_wet
+    
+    print(sprintf("Error: Not enough wet days to bias correct %s. Will not bias correct.",
+                  as.character(attributes(mod_train)$modname)))
+  } else {
+    
+    # Run EDCDFm to bias correct future wet day anomalies
+    anom_mod_fut_adj_wet <- edqmap(anom_obs_wet, anom_mod_train0_wet, anom_mod_fut0_wet,
+                                   anom_mod_fut0_wet, delta_type='add')
+    
+    # If deltas applied by EDCDFm are significantly skewed, mean of ratio
+    # anomalies might be slightly different from 1. Calculate k correction factor
+    # to bring the ratio anomaly mean to 1. This will maintain the GCM projected
+    # change in the mean wet day value. This k correction is analogous to the k correction
+    # in Pierce et al. Section 3b
+    anom_kmean <- check_prcp_kmean(1/mean(anom_mod_fut_adj_wet))
+    
+    # Calculate bias-corrected mean value for future time period
+    mean_mod_fut_wet_adj <- mean_bc_delta_wet*mean_mod_fut0_wet
+    
+    # Multiply bias corrected daily anomaly ratios by k and bias-corrected mean
+    # to get bias corrected daily wet day values
+    mod_fut_adj_wet <- anom_mod_fut_adj_wet * anom_kmean * mean_mod_fut_wet_adj
+  
+  }
+  
+  # Combine dry days and adjusted wet days of future model time series to get
+  # full adjusted time series
+  mod_fut_adj <- mod_fut0
+  mod_fut_adj[mod_fut_adj > 0] = as.numeric(mod_fut_adj_wet)
+  
+  # TODO: Should this correction be applied? It corrects the overall mean, but
+  # then the wet day mean is no longer correct. In other words, which should have
+  # higher priority--wet day mean or overall mean?
+  
+  # Make sure overall mean of mod_fut_adj matches the bias corrected overall mean
+  # They should already be identical if the wet day threshold made the model # of wet 
+  # days = # of observed wet days over the training period. If not (i.e.--the model has too
+  # many dry days), the mean of mod_fut_adj will != the bias corrected overall mean
+  # without an adjustment.
+  
+  # Calculate overall bias-corrected mean value for future time period 
+  mean_mod_fut0_adj <- mean_bc_delta0*mean_mod_fut0
+  # Calculate k correction factor ann apply to mod_fut_adj
+  kmean <- check_prcp_kmean(mean_mod_fut0_adj/mean(mod_fut_adj))
+  mod_fut_adj <- mod_fut_adj * kmean
+  
+  return(mod_fut_adj[index(mod_fut_subset)])
+}
+
+edqmap_tair <- function(obs, mod_train, mod_fut, mod_fut_subset) {
+    
+  # Calculate mean of observation and model time series over training time period
+  # and mean of model time series over future period
+  mean_obs <- mean(obs)
+  mean_mod_train <- mean(mod_train)
+  mean_mod_fut <- mean(mod_fut)
+  # Calculate difference of observation mean to model mean over training period
+  mean_bc_delta <- mean_obs - mean_mod_train
+  
+  # Calculate daily anomalies for each time series based on mean values
+  anom_obs <- obs - mean_obs
+  anom_mod_train <- mod_train - mean_mod_train
+  anom_mod_fut <- mod_fut - mean_mod_fut
+  
+  # Run EDCDFm to bias correct future anomalies
+  anom_mod_fut_adj <- edqmap(anom_obs, anom_mod_train, anom_mod_fut, anom_mod_fut, delta_type='add')
+    
+  # If deltas applied by EDCDFm are significantly skewed, mean of
+  # anomalies might be slightly different from 0. Calculate k correction factor
+  # to bring the anomaly mean to 0. This will maintain the GCM projected
+  # change in the mean value. This k correction is analogous to the k correction
+  # in Pierce et al. Section 3b
+  anom_kmean <- 0 - mean(anom_mod_fut_adj)
+    
+  # Calculate bias-corrected mean value for future time period
+  mean_mod_fut_adj <- mean_bc_delta + mean_mod_fut
+    
+  # Add adjusted future mean and k correction to bias corrected anomalies to
+  # get final bias corrected values
+  mod_fut_adj <- anom_mod_fut_adj + anom_kmean + mean_mod_fut_adj
+      
+  return(mod_fut_adj[index(mod_fut_subset)])
+}
+
+
+
