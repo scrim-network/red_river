@@ -286,6 +286,18 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
     anom_mod_fut_adj_wet <- edqmap(anom_obs_wet, anom_mod_train0_wet, anom_mod_fut0_wet,
                                    anom_mod_fut0_wet, delta_type='add')
     
+    mask_neg_anom <- anom_mod_fut_adj_wet < 0
+    
+    if (any(mask_neg_anom)) {
+      
+      min_anom <- min(anom_mod_fut_adj_wet[!mask_neg_anom])
+      anom_mod_fut_adj_wet[mask_neg_anom] <- min_anom
+      
+      print(sprintf("Warning: %d negative bias corrected prcp anomaly ratios for %s. Setting to min positive anomaly.",
+                    sum(mask_neg_anom), as.character(attributes(mod_train)$modname)))
+
+    }
+    
     # If deltas applied by EDCDFm are significantly skewed, mean of ratio
     # anomalies might be slightly different from 1. Calculate k correction factor
     # to bring the ratio anomaly mean to 1. This will maintain the GCM projected
