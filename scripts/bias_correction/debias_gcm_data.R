@@ -51,12 +51,12 @@ merge_ptype <- merge.xts(obs_ptype, mod_ptype)
 win_masks <- build_window_masks(merge_ptype,idx_all,winsize=winsize)
 win_masks1 <- build_window_masks(merge_ptype,idx_all,winsize=1)
 
-bias_funcs <- list('tas'=edqmap,'pr'=edqmap_prcp)
+bias_funcs <- list('tas'=edqmap_tair,'pr'=edqmap_prcp)
 a_obs <- list('tas'=a_obs_tair, 'pr'=a_obs_prcp)
 
 fpath_log <- file.path(cfg['path_logs'], 'bias_correct.log')
 writeLines(c(""),fpath_log)
-cl <- makeCluster(3)
+cl <- makeCluster(20)
 registerDoParallel(cl)
 
 results <- foreach(fpath=fpaths_in) %dopar% {
@@ -78,9 +78,7 @@ results <- foreach(fpath=fpaths_in) %dopar% {
   for (r in 1:dim(a_debias)[1]) {
     
     for (c in 1:dim(a_debias)[2]) {
-      
-      print(c(r,c))
-      
+            
       mod_rc <- xts(a[r,c,],times_ptype)
       obs_rc <- xts(a_obs[[elem]][r,c,],times_obs)
       
@@ -99,8 +97,8 @@ results <- foreach(fpath=fpaths_in) %dopar% {
   # Output debiased data
   
   # Create output dimensions
-  dim_lon <- ncdim_def('lon',units='',vals=ds$dim[['lon']]$vals)
-  dim_lat <- ncdim_def('lat',units='',vals=ds$dim[['lat']]$vals)
+  dim_lon <- ncdim_def('lon',units='degrees_east',vals=ds$dim[['lon']]$vals)
+  dim_lat <- ncdim_def('lat',units='degrees_north',vals=ds$dim[['lat']]$vals)
   dim_time <- ncdim_def('time', units=ds$dim[['time']]$units, ds$dim[['time']]$vals,
                         calendar=ds$dim[['time']]$calendar)
   # Create output variable
@@ -123,7 +121,14 @@ results <- foreach(fpath=fpaths_in) %dopar% {
   for (attname in names(attrs_global)) {
     ncatt_put(ds_out,0,attname,attrs_global[[attname]])
   }
-  
+  # Add lon/lat attributes
+  ncatt_put(ds_out,'lon','standard_name','longitude')
+  ncatt_put(ds_out,'lon','long_name','longitude')
+  ncatt_put(ds_out,'lon','axis','X')
+  ncatt_put(ds_out,'lat','standard_name','latitude')
+  ncatt_put(ds_out,'lat','long_name','latitude')
+  ncatt_put(ds_out,'lat','axis','Y')
+    
   # Close
   nc_close(ds_out)
   nc_close(ds)
