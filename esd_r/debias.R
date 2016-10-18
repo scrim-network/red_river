@@ -200,23 +200,10 @@ wetday_threshold <- function(obs, mod) {
   ndif <- nwet_mod-nwet_obs
   
   if (ndif > 0) {
-    thres <- sort(as.numeric(mod[mod > 0]))[ndif]
-    
-    if (sum(mod > thres) != nwet_obs) {
-      print(sprintf("Warning: %s has inexact prcp threshold. With threshold, ndry modeled = %d. ndry obs = %d",
-                    xtsAttributes(mod)$modname,sum(mod <= thres),sum(obs == 0)))
-    }
-    
+    thres <- sort(as.numeric(mod[mod > 0]))[ndif]    
   } else {
+    # Dry bias
     thres <- 0
-    
-#    if (ndif != 0) {
-#      
-#      print(sprintf("Warning: %s has dry bias of %d days over %d total days from %s-%s",
-#                    xtsAttributes(mod)$modname, ndif,length(obs),strftime(min(index(obs)),'%Y'),
-#                    strftime(max(index(obs)),'%Y')))
-#    }
-
   }
   return(thres)
   
@@ -286,16 +273,15 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
     anom_mod_fut_adj_wet <- edqmap(anom_obs_wet, anom_mod_train0_wet, anom_mod_fut0_wet,
                                    anom_mod_fut0_wet, delta_type='add')
     
+    # Make sure there are no negative anomalies. If there are, set to minimum
+    # non-negative anomaly.      
     mask_neg_anom <- anom_mod_fut_adj_wet < 0
-    
+   
     if (any(mask_neg_anom)) {
       
       min_anom <- min(anom_mod_fut_adj_wet[!mask_neg_anom])
       anom_mod_fut_adj_wet[mask_neg_anom] <- min_anom
       
-      print(sprintf("Warning: %d negative bias corrected prcp anomaly ratios for %s. Setting to min positive anomaly.",
-                    sum(mask_neg_anom), as.character(attributes(mod_train)$modname)))
-
     }
     
     # If deltas applied by EDCDFm are significantly skewed, mean of ratio
