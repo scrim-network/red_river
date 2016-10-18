@@ -225,6 +225,7 @@ wetday_threshold <- function(obs, mod) {
 .check_prcp_kmean <- function(kmean, modname) {
   
   if (is.na(kmean) | is.infinite(kmean)) { kmean <- 1 }
+  return(kmean)
   
 }
 
@@ -244,7 +245,7 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
   mean_obs <- mean(obs)
   mean_mod_train0 <- mean(mod_train0)
   mean_mod_fut0 <- mean(mod_fut0)
-  # Calculate ratio of observation mean to model mean.
+  # Calculate ratio of observation mean to model mean over training time period.
   mean_bc_delta0 <- mean_obs/mean_mod_train0
     
   # Subset anomly time series to only wet values. Will only apply EDCDFm to wet
@@ -277,7 +278,7 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
     # to the original anomaly values
     anom_mod_fut_adj_wet <-  anom_mod_fut0_wet
     
-    print(sprintf("Error: Not enough wet days to bias correct %s. Will not bias correct.",
+    print(sprintf("Warning: Not enough wet days to bias correct %s. Will not bias correct.",
                   as.character(attributes(mod_train)$modname)))
   } else {
     
@@ -290,7 +291,7 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
     # to bring the ratio anomaly mean to 1. This will maintain the GCM projected
     # change in the mean wet day value. This k correction is analogous to the k correction
     # in Pierce et al. Section 3b
-    anom_kmean <- check_prcp_kmean(1/mean(anom_mod_fut_adj_wet))
+    anom_kmean <- .check_prcp_kmean(1/mean(anom_mod_fut_adj_wet))
     
     # Calculate bias-corrected mean value for future time period
     mean_mod_fut_wet_adj <- mean_bc_delta_wet*mean_mod_fut0_wet
@@ -318,8 +319,8 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
   
   # Calculate overall bias-corrected mean value for future time period 
   mean_mod_fut0_adj <- mean_bc_delta0*mean_mod_fut0
-  # Calculate k correction factor ann apply to mod_fut_adj
-  kmean <- check_prcp_kmean(mean_mod_fut0_adj/mean(mod_fut_adj))
+  # Calculate k correction factor and apply to mod_fut_adj
+  kmean <- .check_prcp_kmean(mean_mod_fut0_adj/mean(mod_fut_adj))
   mod_fut_adj <- mod_fut_adj * kmean
   
   return(mod_fut_adj[index(mod_fut_subset)])
