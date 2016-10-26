@@ -54,7 +54,7 @@ def line_rcp():
     fig =plt.gcf()
     fig.set_size_inches(7,8) #w h
     plt.tight_layout()
-    plt.savefig(os.path.join(esd.cfg.path_cmip5_trends,'figures','line_rcp_tair_anoms.png'), dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(path_out_figs, 'line_rcp_tair_anoms.png'), dpi=300, bbox_inches='tight')
     
     # Prcp
     anoms_prcp = anoms_prcp.rename(columns={'anomaly':'anomaly (fraction)','vname':'time window'})
