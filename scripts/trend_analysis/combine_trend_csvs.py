@@ -25,36 +25,41 @@ def fname_to_season(fname):
 if __name__ == '__main__':
     
     # Trends for CMIP5 realizations have NOT been biased corrected and downscaled
-    # path_trends = esd.cfg.path_cmip5_trends
+    path_trends_orig = os.path.join(esd.cfg.path_cmip5_trends, 'orig')
+    
+    # Trends for CMIP5 realizations have been biased corrected but NOT downscaled
+    path_trends_bc = os.path.join(esd.cfg.path_cmip5_trends, 'bias_corrected')
     
     # Trends for CMIP5 realizations have been biased corrected and downscaled
-    path_trends = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
-    
-    fpaths = sorted(glob.glob(os.path.join(path_trends, 'pr_*.csv')))
-    fpaths.extend(sorted(glob.glob(os.path.join(path_trends, 'tas_*.csv'))))
-    fpath_out = os.path.join(path_trends, 'red_river_trends.csv')
-    
-    df_all = []
-    
-    for fpath in fpaths:
+    path_trends_ds = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
         
-        print fpath
+    for path_trends in [path_trends_orig, path_trends_bc, path_trends_ds]:
         
-        fname = os.path.basename(fpath)
+        fpaths = sorted(glob.glob(os.path.join(path_trends, 'pr_*.csv')))
+        fpaths.extend(sorted(glob.glob(os.path.join(path_trends, 'tas_*.csv'))))
+        fpath_out = os.path.join(path_trends, 'red_river_trends.csv')
         
-        df = pd.read_csv(fpath, header=None, names=['model_run', 'trend'], index_col=0)
-        df = df.reset_index()
-        df['rcp'] = df['model_run'].str.split('_',expand=True)[1].values
-        df['season'] = fname_to_season(fname)
-        df['elem'] = fname.split('_')[0]
-        df['time_period'] = "_".join(fname.split('_')[1:3])
-        df = df[['model_run','rcp','season','elem','time_period','trend']]
+        df_all = []
         
-        df_all.append(df)
-    
-    df_all = pd.concat(df_all, ignore_index=True)
-    
-    # Get rid of duplicate trends from models that didn't have complete time
-    # period
-    df_all = df_all[~df_all.trend.duplicated(keep=False)]
-    df_all.to_csv(fpath_out,index=False)
+        for fpath in fpaths:
+            
+            print fpath
+            
+            fname = os.path.basename(fpath)
+            
+            df = pd.read_csv(fpath, header=None, names=['model_run', 'trend'], index_col=0)
+            df = df.reset_index()
+            df['rcp'] = df['model_run'].str.split('_',expand=True)[1].values
+            df['season'] = fname_to_season(fname)
+            df['elem'] = fname.split('_')[0]
+            df['time_period'] = "_".join(fname.split('_')[1:3])
+            df = df[['model_run','rcp','season','elem','time_period','trend']]
+            
+            df_all.append(df)
+        
+        df_all = pd.concat(df_all, ignore_index=True)
+        
+        # Get rid of duplicate trends from models that didn't have complete time
+        # period
+        df_all = df_all[~df_all.trend.duplicated(keep=False)]
+        df_all.to_csv(fpath_out,index=False)
