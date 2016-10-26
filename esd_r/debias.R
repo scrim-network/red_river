@@ -265,7 +265,7 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
     # to the original anomaly values
     anom_mod_fut_adj_wet <-  anom_mod_fut0_wet
     
-    print(sprintf("Warning: Not enough wet days to bias correct %s. Will not bias correct.",
+    print(sprintf("Warning: Not enough wet days to bias correct anomalies for %s.",
                   as.character(attributes(mod_train)$modname)))
   } else {
     
@@ -275,7 +275,7 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
     
     # Make sure there are no negative anomalies. If there are, set to minimum
     # non-negative anomaly.      
-    mask_neg_anom <- anom_mod_fut_adj_wet < 0
+    mask_neg_anom <- anom_mod_fut_adj_wet <= 0
    
     if (any(mask_neg_anom)) {
       
@@ -283,22 +283,23 @@ edqmap_prcp <- function(obs, mod_train, mod_fut, mod_fut_subset) {
       anom_mod_fut_adj_wet[mask_neg_anom] <- min_anom
       
     }
-    
-    # If deltas applied by EDCDFm are significantly skewed, mean of ratio
-    # anomalies might be slightly different from 1. Calculate k correction factor
-    # to bring the ratio anomaly mean to 1. This will maintain the GCM projected
-    # change in the mean wet day value. This k correction is analogous to the k correction
-    # in Pierce et al. Section 3b
-    anom_kmean <- .check_prcp_kmean(1/mean(anom_mod_fut_adj_wet))
-    
-    # Calculate bias-corrected mean value for future time period
-    mean_mod_fut_wet_adj <- mean_bc_delta_wet*mean_mod_fut0_wet
-    
-    # Multiply bias corrected daily anomaly ratios by k and bias-corrected mean
-    # to get bias corrected daily wet day values
-    mod_fut_adj_wet <- anom_mod_fut_adj_wet * anom_kmean * mean_mod_fut_wet_adj
-  
+      
   }
+  
+  # If deltas applied by EDCDFm are significantly skewed, mean of ratio
+  # anomalies might be slightly different from 1. Calculate k correction factor
+  # to bring the ratio anomaly mean to 1. This will maintain the GCM projected
+  # change in the mean wet day value. This k correction is analogous to the k correction
+  # in Pierce et al. Section 3b
+  anom_kmean <- .check_prcp_kmean(1/mean(anom_mod_fut_adj_wet))
+  
+  # Calculate bias-corrected mean value for future time period
+  mean_mod_fut_wet_adj <- mean_bc_delta_wet*mean_mod_fut0_wet
+  
+  # Multiply bias corrected daily anomaly ratios by k and bias-corrected mean
+  # to get bias corrected daily wet day values
+  mod_fut_adj_wet <- anom_mod_fut_adj_wet * anom_kmean * mean_mod_fut_wet_adj
+  
   
   # Combine dry days and adjusted wet days of future model time series to get
   # full adjusted time series
