@@ -78,9 +78,15 @@ def output_ann_trends(path_cmip5, fname_pattern, vname, unit_convert_func,
     
     for run_name,fpath in zip(run_names, fpaths):
         
-        print run_name
+        #print run_name
         
-        da = xr.open_dataset(fpath).load()[vname]
+        ds = xr.open_dataset(fpath)
+        mask_lat = np.logical_and(ds.lat.values >= esd.cfg.bbox[1],
+                                  ds.lat.values <= esd.cfg.bbox[-1])
+        mask_lon = np.logical_and(ds.lon.values >= esd.cfg.bbox[0],
+                                  ds.lon.values <= esd.cfg.bbox[2]) 
+        da = ds[vname][:, mask_lat, mask_lon].load()
+        ds.close()
             
         mthly = da.resample('1MS', dim='time', how=resample_func)
         ann = mthly.resample('AS', dim='time', how=resample_func)
@@ -116,10 +122,16 @@ def output_season_trends(path_cmip5, fname_pattern, season_mths, vname,
     
     for run_name,fpath in zip(run_names, fpaths):
         
-        print run_name
+        #print run_name
         
-        da = xr.open_dataset(fpath).load()[vname]
-            
+        ds = xr.open_dataset(fpath)
+        mask_lat = np.logical_and(ds.lat.values >= esd.cfg.bbox[1],
+                                  ds.lat.values <= esd.cfg.bbox[-1])
+        mask_lon = np.logical_and(ds.lon.values >= esd.cfg.bbox[0],
+                                  ds.lon.values <= esd.cfg.bbox[2]) 
+        da = ds[vname][:, mask_lat, mask_lon].load()
+        ds.close()
+        
         mthly = da.resample('1MS', dim='time', how=resample_func)
 
         mask_season = np.in1d(mthly['time.month'].values, season_mths)
@@ -161,95 +173,111 @@ def output_season_trends(path_cmip5, fname_pattern, season_mths, vname,
 if __name__ == '__main__':
     
     # Trends for CMIP5 realizations have NOT been biased corrected and downscaled
-#     path_cmip5 = esd.cfg.path_cmip5_cleaned
-#     path_out = esd.cfg.path_cmip5_trends
+    path_cmip5_orig = esd.cfg.path_cmip5_cleaned
+    path_out_orig = os.path.join(esd.cfg.path_cmip5_trends, 'orig')
+    
+    # Trends for CMIP5 realizations have been biased corrected but NOT downscaled
+    path_cmip5_bc = esd.cfg.path_cmip5_debiased
+    path_out_bc = os.path.join(esd.cfg.path_cmip5_trends, 'bias_corrected')
     
     # Trends for CMIP5 realizations have been biased corrected and downscaled
-    path_cmip5 = esd.cfg.path_cmip5_downscaled
-    path_out = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
+    path_cmip5_ds = esd.cfg.path_cmip5_downscaled
+    path_out_ds = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
+    
+    paths_all = zip([path_cmip5_orig,path_cmip5_bc,path_cmip5_ds],
+                    [path_out_orig,path_out_bc,path_out_ds])
     
     start_base = esd.cfg.start_date_baseline.strftime('%Y-%m-%d')
     end_base = esd.cfg.end_date_baseline.strftime('%Y-%m-%d')
     trend_periods = [('2006','2050'), ('2006','2099')]
     
     # Prcp ann
-    print "Processing Prcp ann"
-    for a_start, a_end in trend_periods:
-         
-        output_ann_trends(path_cmip5,
-                          fname_pattern='pr.day*.nc',
-                          vname='pr',
-                          unit_convert_func=None,
-                          resample_func='sum',
-                          trend_func=lambda x: x*100*10, #% per decade,
-                          anom_func= lambda mthly_grp,norms: mthly_grp / norms,
-                          start_base=start_base,
-                          end_base=end_base,
-                          start_trend=a_start,
-                          end_trend=a_end,
-                          path_out=path_out)
-    
-    
-    # Prcp seasonal
-    print "Processing Prcp seasonal"
-    for a_start, a_end in trend_periods:
+    for path_cmip5,path_out in paths_all:
         
-        for season,use_roll in [([6,7,8,9], False),
-                                ([12,1,2], True),
-                                ([10,11], False),
-                                ([4,5], False),]:
-            
-            output_season_trends(path_cmip5,
-                                 fname_pattern='pr.day*.nc',
-                                 season_mths=season,
-                                 vname='pr',
-                                 unit_convert_func=None,
-                                 resample_func='sum',
-                                 anom_func=lambda mthly_grp,norms: mthly_grp / norms,
-                                 trend_func=lambda x: x*100*10, #% per decade
-                                 start_base=start_base,
-                                 end_base=end_base,
-                                 start_trend=a_start,
-                                 end_trend=a_end,
-                                 path_out=path_out, rolling=use_roll)
-            
-    print "Processing Tair ann"
-    for a_start, a_end in trend_periods:
-         
-        output_ann_trends(path_cmip5,
-                          fname_pattern='tas.day*.nc',
-                          vname='tas',
-                          unit_convert_func=None,
-                          resample_func='mean',
-                          trend_func=lambda x: x*10, #degC per decade,
-                          anom_func= lambda mthly_grp,norms: mthly_grp - norms,
-                          start_base=start_base,
-                          end_base=end_base,
-                          start_trend=a_start,
-                          end_trend=a_end,
-                          path_out=path_out)
-    
-    
-    # Tair seasonal
-    print "Processing Tair seasonal"
-    for a_start, a_end in trend_periods:
+        print "#######################"
+        print "Processing CMIP5 realizations for: " + path_cmip5
+        print "#######################"
         
-        for season,use_roll in [([6,7,8,9], False),
-                                ([12,1,2], True),
-                                ([10,11], False),
-                                ([4,5], False),]:
+        for a_start, a_end in trend_periods:
             
-            output_season_trends(path_cmip5,
-                                 fname_pattern='tas.day*.nc',
-                                 season_mths=season,
-                                 vname='tas',
-                                 unit_convert_func=None,
-                                 resample_func='mean',
-                                 anom_func=lambda mthly_grp,norms: mthly_grp - norms,
-                                 trend_func=lambda x: x*10, #degC per decade,
-                                 start_base=start_base,
-                                 end_base=end_base,
-                                 start_trend=a_start,
-                                 end_trend=a_end,
-                                 path_out=path_out, rolling=use_roll)
-  
+            print "Processing Prcp ann over %s to %s"%(a_start, a_end)
+            
+            output_ann_trends(path_cmip5,
+                              fname_pattern='pr.day*.nc',
+                              vname='pr',
+                              unit_convert_func=None,
+                              resample_func='sum',
+                              trend_func=lambda x: x*100*10, #% per decade,
+                              anom_func= lambda mthly_grp,norms: mthly_grp / norms,
+                              start_base=start_base,
+                              end_base=end_base,
+                              start_trend=a_start,
+                              end_trend=a_end,
+                              path_out=path_out)
+        
+        
+        # Prcp seasonal
+        for a_start, a_end in trend_periods:
+            
+            for season,use_roll in [([6,7,8,9], False),
+                                    ([12,1,2], True),
+                                    ([10,11], False),
+                                    ([4,5], False),]:
+                
+                print "Processing Prcp seasonal %s over %s to %s"%(str(season), a_start, a_end)
+                
+                output_season_trends(path_cmip5,
+                                     fname_pattern='pr.day*.nc',
+                                     season_mths=season,
+                                     vname='pr',
+                                     unit_convert_func=None,
+                                     resample_func='sum',
+                                     anom_func=lambda mthly_grp,norms: mthly_grp / norms,
+                                     trend_func=lambda x: x*100*10, #% per decade
+                                     start_base=start_base,
+                                     end_base=end_base,
+                                     start_trend=a_start,
+                                     end_trend=a_end,
+                                     path_out=path_out, rolling=use_roll)
+                
+        for a_start, a_end in trend_periods:
+             
+            print "Processing Tair ann over %s to %s"%(a_start, a_end)
+             
+            output_ann_trends(path_cmip5,
+                              fname_pattern='tas.day*.nc',
+                              vname='tas',
+                              unit_convert_func=None,
+                              resample_func='mean',
+                              trend_func=lambda x: x*10, #degC per decade,
+                              anom_func= lambda mthly_grp,norms: mthly_grp - norms,
+                              start_base=start_base,
+                              end_base=end_base,
+                              start_trend=a_start,
+                              end_trend=a_end,
+                              path_out=path_out)
+        
+        
+        # Tair seasonal
+        for a_start, a_end in trend_periods:
+            
+            for season,use_roll in [([6,7,8,9], False),
+                                    ([12,1,2], True),
+                                    ([10,11], False),
+                                    ([4,5], False),]:
+                
+                print "Processing Tair seasonal %s over %s to %s"%(str(season), a_start, a_end)
+                
+                output_season_trends(path_cmip5,
+                                     fname_pattern='tas.day*.nc',
+                                     season_mths=season,
+                                     vname='tas',
+                                     unit_convert_func=None,
+                                     resample_func='mean',
+                                     anom_func=lambda mthly_grp,norms: mthly_grp - norms,
+                                     trend_func=lambda x: x*10, #degC per decade,
+                                     start_base=start_base,
+                                     end_base=end_base,
+                                     start_trend=a_start,
+                                     end_trend=a_end,
+                                     path_out=path_out, rolling=use_roll)
