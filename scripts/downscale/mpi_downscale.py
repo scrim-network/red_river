@@ -131,6 +131,7 @@ def proc_coord(nwrkers):
     fnames_done = np.array([os.path.basename(fpath) for fpath in fpaths_done])
     mask_done = np.in1d(fnames_all, fnames_done)
     fnames_all = fnames_all[~mask_done]
+    fpaths_all = fpaths_all[~mask_done]
     
     print "COORD: %d datasets already downscaled. %d to go."%(mask_done.sum(), fnames_all.size)
     
