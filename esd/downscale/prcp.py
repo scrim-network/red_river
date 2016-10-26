@@ -644,7 +644,11 @@ class PrcpDownscale():
                  train_start_year, train_end_year, downscale_start_year, downscale_end_year):
         
         self.da_obs = xr.open_dataset(fpath_prcp_obs).PCP
-        self.da_obsc = xr.open_dataset(fpath_prcp_obsc).PCP.load()    
+        self.da_obsc = xr.open_dataset(fpath_prcp_obsc).PCP.load()
+        
+        # Set any negative values due to bicubic smoothing to 0
+        self.da_obsc.values[self.da_obsc.values < 0] = 0
+        
         self.da_obs = self.da_obs.loc[:, self.da_obsc.lat.values, self.da_obsc.lon.values].load()
     
         self.da_obs['time'] = _convert_times(self.da_obs)
@@ -666,6 +670,9 @@ class PrcpDownscale():
         self.downscale_end_year = downscale_end_year
         
     def downscale(self, da_mod):
+        
+        # Set any negative values due to bicubic smoothing to 0
+        da_mod.values[da_mod.values < 0] = 0
         
         da_mod_clim = to_clim(da_mod.loc[self.base_start_year:self.base_end_year])
         da_mod_anoms = da_mod.groupby('time.month') / da_mod_clim
