@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # Trends for CMIP5 realizations have been biased corrected and downscaled
     path_trends_ds = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
         
-    for path_trends in [path_trends_orig, path_trends_bc, path_trends_ds]:
+    for path_trends in [path_trends_ds]:
         
         fpaths = sorted(glob.glob(os.path.join(path_trends, 'pr_*.csv')))
         fpaths.extend(sorted(glob.glob(os.path.join(path_trends, 'tas_*.csv'))))

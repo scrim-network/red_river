@@ -184,8 +184,8 @@ if __name__ == '__main__':
     path_cmip5_ds = esd.cfg.path_cmip5_downscaled
     path_out_ds = os.path.join(esd.cfg.path_cmip5_trends, 'downscaled')
     
-    paths_all = zip([path_cmip5_orig,path_cmip5_bc,path_cmip5_ds],
-                    [path_out_orig,path_out_bc,path_out_ds])
+    paths_all = zip([path_cmip5_ds],
+                    [path_out_ds])
     
     start_base = esd.cfg.start_date_baseline.strftime('%Y-%m-%d')
     end_base = esd.cfg.end_date_baseline.strftime('%Y-%m-%d')
