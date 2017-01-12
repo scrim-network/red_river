@@ -34,18 +34,20 @@ def plot_avg_total_prcp(ds_d, mod_names, mod_longnames, months=None, fpath_out=N
     ds_metrics.err.attrs['longname'] = 'Error (mm)'
 
     grid = plot_validation_grid_maps(ds_metrics, ['pct_err','err'], esd.cfg.bbox)
-    for i in np.arange((len(mod_names)*3)+1,step=3):# [0,3,6,9]:
+    for i in np.arange((len(mod_names)*3) + 3 ):# [0,3,6,9]:
         cticks = grid.cbar_axes[i].get_xticklabels()
         cticks = np.array(cticks)
         cticks[np.arange(1,cticks.size,step=2)] = ''
         grid.cbar_axes[i].set_xticklabels(cticks)
+        grid.cbar_axes[i].tick_params(pad=-5)
     
     fig = plt.gcf()
-    fig.set_size_inches(9.97,(12.44/4)*(len(mod_names)+1)) #w h
+    #fig.set_size_inches(9.97,(12.44/4)*(len(mod_names)+1)) #w h
+    fig.set_size_inches(7.86,7.5) #w h
     plt.tight_layout()
      
     if fpath_out is not None:
-        plt.savefig(fpath_out, dpi=150, bbox_inches='tight')
+        plt.savefig(fpath_out, dpi=300, bbox_inches='tight')
 
 def plot_avg_wetday_frac(ds_d, mod_names, mod_longnames, wet_thres=0.1, months=None, fpath_out=None):
     
@@ -62,18 +64,19 @@ def plot_avg_wetday_frac(ds_d, mod_names, mod_longnames, wet_thres=0.1, months=N
     ds_metrics.err.attrs['longname'] = 'Error (pp)'
 
     grid = plot_validation_grid_maps(ds_metrics, ['err'], esd.cfg.bbox)
-    for i in np.arange((len(mod_names)*2)+1,step=2):
+    for i in np.arange((len(mod_names)*2) + 2 ):
         cticks = grid.cbar_axes[i].get_xticklabels()
         cticks = np.array(cticks)
         cticks[np.arange(1,cticks.size,step=2)] = ''
         grid.cbar_axes[i].set_xticklabels(cticks)
+        grid.cbar_axes[i].tick_params(pad=-5)
     
     fig = plt.gcf()
-    fig.set_size_inches(9.97*(2.0/3.0),(12.44/4)*(len(mod_names)+1))
+    fig.set_size_inches(7.86,7.5)
     plt.tight_layout()
      
     if fpath_out is not None:
-        plt.savefig(fpath_out, dpi=150, bbox_inches='tight')
+        plt.savefig(fpath_out, dpi=300, bbox_inches='tight')
 
 def plot_quantile(ds_d, mod_names, mod_longnames, q, months=None, fpath_out=None):
         
@@ -89,18 +92,19 @@ def plot_quantile(ds_d, mod_names, mod_longnames, q, months=None, fpath_out=None
     ds_metrics.err.attrs['longname'] = 'Error (mm)'
 
     grid = plot_validation_grid_maps(ds_metrics, ['pct_err', 'err'], esd.cfg.bbox)
-    for i in np.arange((len(mod_names)*3)+1,step=3):
+    for i in np.arange((len(mod_names)*3) + 3 ):
         cticks = grid.cbar_axes[i].get_xticklabels()
         cticks = np.array(cticks)
         cticks[np.arange(1,cticks.size,step=2)] = ''
         grid.cbar_axes[i].set_xticklabels(cticks)
+        grid.cbar_axes[i].tick_params(pad=-5)
     
     fig = plt.gcf()
-    fig.set_size_inches(9.97,(12.44/4)*(len(mod_names)+1)) #w h
+    fig.set_size_inches(7.86,7.5) #w h
     plt.tight_layout()
      
     if fpath_out is not None:
-        plt.savefig(fpath_out, dpi=150, bbox_inches='tight')
+        plt.savefig(fpath_out, dpi=300, bbox_inches='tight')
     
 def plot_correlation(ds_d, mod_names, mod_longnames, rfunc, title, months=None, fpath_out=None):
         
@@ -326,14 +330,14 @@ def plot_spatial_sd_mthly(ds_d, mod_names, mod_longnames, fpath_out=None):
     sd_df.columns = mod_longnames + ['Observed']
 
     with plt.style.context(('seaborn-whitegrid')):
-        
-        sd_df.plot()
-        plt.ylabel("Standard Deviation")
-        plt.legend(fontsize=10)
+        sns.set_context('poster')
+        sd_df.plot(color=['#1b9e77','#d95f02','#7570b3'])
+        plt.ylabel("Average Anomaly Spatial Standard Deviation")
+        plt.legend()
         plt.tight_layout()
     
     if fpath_out is not None:
-        plt.savefig(fpath_out, dpi=150, bbox_inches='tight')
+        plt.savefig(fpath_out, dpi=300, bbox_inches='tight')
 
 if __name__ == '__main__':
     
@@ -347,7 +351,7 @@ if __name__ == '__main__':
                               'downscale_tests_%s_%s.nc'%(downscale_start_year,
                                                           downscale_end_year))
     path_out = os.path.join(esd.cfg.data_root, 'downscaling', 'figures',
-                            'downscale_test_%s_%s'%(downscale_start_year, downscale_end_year))
+                            'downscale_test_%s_%s'%(downscale_start_year, downscale_end_year),'cornell_talk')
     mkdir_p(path_out)
     
     ds_d = xr.open_dataset(fpath_ds_d).load()
@@ -361,9 +365,15 @@ if __name__ == '__main__':
 #                      'Analog Using\nAnomalies','Analog Using\nAbsolute (Interp Scale)',
 #                      'Analog Using\nAnomalies (Interp Scale)']
     
-    mod_names = ['mod_d_cg','mod_d','mod_d_anoms']
-    mod_longnames = ['Coarsened\nAphrodite', 'Analog Using\nAbsolute','Analog Using\nAnomalies']
+#     mod_names = ['mod_d_cg','mod_d','mod_d_anoms']
+#     mod_longnames = ['Coarsened\nAphrodite', 'Analog Using\nAbsolute','Analog Using\nAnomalies']
     
+    mod_names = ['mod_d_cg','mod_d_anoms']
+    mod_longnames = ['Coarsened\nAphrodite', 'CASAA']
+    
+    import seaborn as sns
+    sns.set_context('poster')
+    sns.set_style('whitegrid')
     # Average total precipitation
     fpath_out = os.path.join(path_out,'total_prcp_ann.png')
     plot_avg_total_prcp(ds_d,mod_names,mod_longnames,months=None,fpath_out=fpath_out)
@@ -438,6 +448,8 @@ if __name__ == '__main__':
     df_stcorrel = pd.read_csv(os.path.join(esd.cfg.data_root,'downscaling', 'st_correl',
                                            'stcorrel_anomalies_ann_%s_%s.csv'%(downscale_start_year,
                                                                      downscale_end_year)),index_col=0)
+    df_stcorrel = df_stcorrel.rename(columns={'Analog Using\nAnomalies':'CASAA'})
+    
     fpath_out = os.path.join(path_out, 'stcorrelogram_ann.png')
     plot_st_correlogram(df_stcorrel, mod_longnames, fpath_out)
     plt.clf()
@@ -445,6 +457,7 @@ if __name__ == '__main__':
     df_stcorrel = pd.read_csv(os.path.join(esd.cfg.data_root,'downscaling', 'st_correl',
                                            'stcorrel_anomalies_dryseason_%s_%s.csv'%(downscale_start_year,
                                                                            downscale_end_year)),index_col=0)
+    df_stcorrel = df_stcorrel.rename(columns={'Analog Using\nAnomalies':'CASAA'})
     fpath_out = os.path.join(path_out, 'stcorrelogram_dryseason.png')
     plot_st_correlogram(df_stcorrel, mod_longnames, fpath_out)
     plt.clf()
@@ -521,8 +534,10 @@ if __name__ == '__main__':
         plt.clf()
         
     # Spatial variability
-    ds_d_anoms = ds_d.copy()
-    for vname in ds_d_anoms.data_vars.keys():
-        ds_d_anoms[vname] = to_anomalies(ds_d_anoms[vname])
-    plot_spatial_sd_mthly(ds_d_anoms, mod_names, mod_longnames, fpath_out=None)
+    fpath_out = os.path.join(path_out, 'spatial_sd_anom.png')
+    ds_d_anoms = []
+    for vname in mod_names+['obs']:#ds_d_anoms.data_vars.keys():
+        ds_d_anoms.append(to_anomalies(ds_d[vname])[0])
+    ds_d_anoms = xr.merge(ds_d_anoms)
+    plot_spatial_sd_mthly(ds_d_anoms, mod_names, mod_longnames, fpath_out=fpath_out)
         

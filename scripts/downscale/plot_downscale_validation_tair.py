@@ -24,27 +24,28 @@ def plot_avg_tair(ds_d, mod_names, mod_longnames, months=None, fpath_out=None):
     ds_metrics = xr.merge([err_ls[0].obs,ds_metrics])
     
     if months == None:
-        title = 'Annual Average Tair (degC)'
+        title = u'Annual Average Tair (\u00b0C)'
     else:
-        title = "Months "+str(months)+": Average Tair (degC)"
+        title = u"Months "+str(months)+": Average Tair (\u00b0C)"
     
     ds_metrics.obs.attrs['longname'] = title
     ds_metrics.mod.attrs['longname'] = title
-    ds_metrics.err.attrs['longname'] = 'Error (degC)'
+    ds_metrics.err.attrs['longname'] = u'Error (\u00b0C)'
 
     grid = plot_validation_grid_maps(ds_metrics, ['err'], esd.cfg.bbox)
-    for i in np.arange((len(mod_names)*2)+1,step=2):# [0,3,6,9]:
+    for i in np.arange((len(mod_names)*2) + 2 ):# [0,3,6,9]:
         cticks = grid.cbar_axes[i].get_xticklabels()
         cticks = np.array(cticks)
         cticks[np.arange(1,cticks.size,step=2)] = ''
         grid.cbar_axes[i].set_xticklabels(cticks)
+        grid.cbar_axes[i].tick_params(pad=-5)
     
     fig = plt.gcf()
-    fig.set_size_inches(9.97,(12.44/4)*(len(mod_names)+1)) #w h
+    fig.set_size_inches(7.86,7.5) #w h
     plt.tight_layout()
      
     if fpath_out is not None:
-        plt.savefig(fpath_out, dpi=150, bbox_inches='tight')
+        plt.savefig(fpath_out, dpi=300, bbox_inches='tight')
 
 def plot_quantile(ds_d, mod_names, mod_longnames, q, months=None, fpath_out=None):
         
@@ -227,8 +228,8 @@ def plot_daily_mae(ds_d, mod_names, mod_longnames, months=None, fpath_out=None):
     cfig = plt.gcf()
     
     nrow = int(np.ceil(len(mod_names)/3.0))
-    grid = ImageGrid(cfig,111,nrows_ncols=(nrow, 3),
-                     axes_pad=axes_pad, cbar_mode="each", cbar_pad=.1, cbar_location="bottom",
+    grid = ImageGrid(cfig,111,nrows_ncols=(2, 1),
+                     axes_pad=axes_pad, cbar_mode="single", cbar_pad=.1, cbar_location="bottom",
                      cbar_size='4%')
     
     levels = get_levels(np.concatenate([a_correl.values.ravel() for a_correl in mae_ls]), diverging=False)
@@ -244,7 +245,7 @@ def plot_daily_mae(ds_d, mod_names, mod_longnames, months=None, fpath_out=None):
         cntr = m.contourf(x_map,y_map,da.values,levels=levels, cmap='viridis', extend='both')
         cbar = plt.colorbar(cntr, cax = grid.cbar_axes[i],orientation='horizontal',extend='both')
         cbar.ax.tick_params(labelsize=8)
-        cbar.ax.set_xlabel('r',fontsize=8) 
+        cbar.ax.set_xlabel(u'MAE (\u00b0C)',fontsize=8) 
         m.drawcountries()
         m.drawcoastlines()
         m.ax.text(x_txt,y_txt,'Mean: %.2f'%(da.mean(),),fontsize=8)
@@ -269,19 +270,23 @@ def plot_daily_mae(ds_d, mod_names, mod_longnames, months=None, fpath_out=None):
         cticks[np.arange(1,cticks.size,step=2)] = ''
         grid.cbar_axes[i].set_xticklabels(cticks)
     
-    
-    plt.suptitle("Daily MAE (degC)")
+     
+    #plt.suptitle(u"Daily MAE (\u00b0C)")
     
     fig = plt.gcf()
-    fig.set_size_inches(16.350,(11.52/2)*(nrow)) #w h
+    fig.set_size_inches(3.25,7.12) #w h
     plt.tight_layout()
      
     if fpath_out is not None:
-        plt.savefig(fpath_out, dpi=150, bbox_inches='tight')
+        plt.savefig(fpath_out, dpi=300, bbox_inches='tight')
     
     return grid
 
 if __name__ == '__main__':
+    
+    import seaborn as sns
+    sns.set_context('poster')
+    sns.set_style('whitegrid')
     
 #     downscale_start_year = '1961'
 #     downscale_end_year = '1977'
@@ -292,7 +297,7 @@ if __name__ == '__main__':
                               'downscale_tests_tair_%s_%s.nc'%(downscale_start_year,
                                                                downscale_end_year))
     path_out = os.path.join(esd.cfg.data_root, 'downscaling', 'figures',
-                            'downscale_test_tair_%s_%s'%(downscale_start_year, downscale_end_year))
+                            'downscale_test_tair_%s_%s'%(downscale_start_year, downscale_end_year),'cornell_talk')
     mkdir_p(path_out)
     
     ds_d = xr.open_dataset(fpath_ds_d).load()
@@ -306,8 +311,11 @@ if __name__ == '__main__':
 #                      'Analog Using\nAnomalies','Analog Using\nAbsolute (Interp Scale)',
 #                      'Analog Using\nAnomalies (Interp Scale)']
     
-    mod_names = ['mod_d_cg','mod_d_anoms','mod_d_vclim']
-    mod_longnames = ['Coarsened\nAphrodite', 'Analog Using\nAnomalies','Analog Using\nAnomalies (Downscaled Climatology)']
+#    mod_names = ['mod_d_cg','mod_d_anoms','mod_d_vclim']
+#    mod_longnames = ['Coarsened\nAphrodite', 'Analog Using\nAnomalies','Analog Using\nAnomalies (Downscaled Climatology)']
+    
+    mod_names = ['mod_d_cg','mod_d_anoms']
+    mod_longnames = ['Coarsened\nAphrodite', 'CASAA']
     
     # Average total precipitation
     fpath_out = os.path.join(path_out,'avg_tair_ann.png')
