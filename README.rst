@@ -1,9 +1,15 @@
 #########
-Red River
+Red River CMIP5 bias correction and downscaling
 #########
 
 Python and R code for bias correction and empirical-statistical downscaling of
-GCM projections for the Red River basin in Vietnam. 
+CMIP5 projections for the Red River basin in Vietnam. Bias correction and downscaling of
+CMIP5 projections was conducted in support of:
+
+Quinn JD, Reed PM, Giuliani M, Castelletti A, Oyler JW, Nicholas RE. 2018. Exploring How
+Changing Monsoonal Dynamics and Human Pressures Challenge Multi-Reservoir Management for
+Flood Protection, Hydropower Production and Agricultural Water Supply.
+Water resources research. DOI: `10.1029/2018WR022743. <http://dx.doi.org/10.1029/2018WR022743>`_
 
 =======================
 Bias Correction Methods
